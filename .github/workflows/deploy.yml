@@ -1,0 +1,36 @@
+name: Build drone_commander_page Static Files
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: https://staging.osprean.net/
+
+      - name: Deploy to volume
+        run: |
+          mkdir -p /home/osprean/.volumes/drones
+          rm -rf /home/osprean/.volumes/drones/*
+          cp -r dist/* /home/osprean/.volumes/drones/
+
+      - name: Notify backend to reload nginx
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.BACKEND_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/osprean/comacon_web_backend/dispatches \
+            -d '{"event_type": "frontend-updated"}'

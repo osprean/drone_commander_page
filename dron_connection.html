@@ -1,0 +1,2182 @@
+Ninguno seleccionado
+
+Ir al contenido
+Uso de Correo de Universidad de SALAMANCA con lectores de pantalla
+in:spam
+
+1 de 2
+Html bien rico para ti papi, oh si damelo papi
+External
+Spam
+Lorenzo Cano Andrés <Lorenzo.Cano@osprean.com>
+Archivos adjuntos
+22:06 (hace 55 minutos)
+para mí
+
+¿Por qué está en Spam este mensaje? Este mensaje se parece a otros mensajes que se han identificado como spam anteriormente.
+No es spam
+Parece que este mensaje está en inglés
+
+ Un archivo adjunto
+  •  Analizados por Gmail
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone GCS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #080810;
+            color: #00e87a;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ── */
+        header {
+            background: #0a0a16;
+            border-bottom: 1px solid #1a3028;
+            padding: 0 16px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: #00e87a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo svg { width: 20px; height: 20px; }
+
+        .header-right { display: flex; align-items: center; gap: 10px; }
+
+        /* Connection status */
+        .conn-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #0d0d1c;
+            border: 1px solid #1a2a22;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .conn-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.3s;
+        }
+        .conn-dot.connected { background: #00e87a; box-shadow: 0 0 6px #00e87a; }
+        .conn-dot.connecting { background: #ffaa00; animation: blink 0.8s infinite; }
+        .conn-dot.disconnected { background: #ff4040; }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        /* ── Buttons ── */
+        .btn {
+            background: #0d1a14;
+            color: #00e87a;
+            border: 1px solid #1e4033;
+            padding: 5px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            transition: all 0.15s;
+        }
+        .btn:hover { background: #152b20; border-color: #00e87a; }
+        .btn.danger { background: #1a0a0a; border-color: #5a1515; color: #ff5555; }
+        .btn.danger:hover { border-color: #ff5555; }
+
+        /* ── Main layout ── */
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Map ── */
+        #map {
+            flex: 1;
+            height: 100%;
+            background: #0a0a12;
+        }
+
+        /* ── Sidebar ── */
+        #sidebar {
+            width: 300px;
+            min-width: 300px;
+            background: #0a0a16;
+            border-left: 1px solid #1a2a22;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 8px;
+            gap: 5px;
+        }
+
+        /* Mission tab still scrolls if waypoint list is long */
+        #mission-content { overflow-y: auto; }
+        #mission-content::-webkit-scrollbar { width: 4px; }
+        #mission-content::-webkit-scrollbar-track { background: transparent; }
+        #mission-content::-webkit-scrollbar-thumb { background: #1a3028; border-radius: 4px; }
+
+        /* Telem tab fills sidebar height, video grows to fill remaining space */
+        #telem-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            gap: 5px;
+            overflow: hidden;
+        }
+
+        /* ── Panel ── */
+        .panel {
+            background: #0d0d1c;
+            border: 1px solid #1a2a22;
+            border-radius: 6px;
+            padding: 7px 10px;
+        }
+
+        .panel-title {
+            font-size: 9px;
+            letter-spacing: 2.5px;
+            color: #3a7a55;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #1a2a22;
+        }
+
+        .attitude-readouts {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 11px;
+        }
+
+        .att-val { color: #00ccff; }
+        .att-label { color: #3a7a55; font-size: 9px; }
+
+        /* ── Heading compass ── */
+
+        /* ── Status grid ── */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .stat-cell {
+            background: #09090f;
+            border: 1px solid #1a2020;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .stat-label { font-size: 8px; letter-spacing: 1.5px; color: #3a6050; text-transform: uppercase; }
+        .stat-val { font-size: 12px; font-weight: bold; margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+        .ok    { color: #00e87a; }
+        .warn  { color: #ffaa00; }
+        .alert { color: #ff4444; }
+        .armed { color: #ff8800; }
+
+        /* ── Battery ── */
+        .batt-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .batt-bar-bg {
+            height: 7px;
+            background: #111122;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .batt-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s, background 0.6s;
+        }
+
+        /* ── Altitude ── */
+        .alt-row {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .alt-num { font-size: 17px; color: #00e8cc; font-variant-numeric: tabular-nums; }
+        .alt-unit { font-size: 8px; color: #3a7a55; letter-spacing: 1px; }
+
+        /* ── Video ── */
+        #video-wrap {
+            background: #050508;
+            border-radius: 4px;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #1a2020;
+        }
+
+        #video-feed         { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #video-feed-img     { width: 100%; height: 100%; object-fit: cover; display: none; }
+
+        #video-placeholder {
+            color: #2a4a38;
+            font-size: 10px;
+            text-align: center;
+            line-height: 1.8;
+            letter-spacing: 1px;
+        }
+
+        #video-placeholder .no-signal-icon {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 4px;
+            opacity: 0.5;
+        }
+
+        /* ── Modal ── */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .overlay.open { display: flex; }
+
+        .modal {
+            background: #0d0d1c;
+            border: 1px solid #1e3a2c;
+            border-radius: 8px;
+            padding: 22px 24px;
+            width: 500px;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+
+        .modal::-webkit-scrollbar { width: 4px; }
+        .modal::-webkit-scrollbar-thumb { background: #1a3028; }
+
+        .modal h2 {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #00e87a;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1a2a22;
+            text-transform: uppercase;
+        }
+
+        .cfg-section-title {
+            font-size: 8px;
+            letter-spacing: 2px;
+            color: #3a7a55;
+            text-transform: uppercase;
+            margin: 14px 0 8px;
+        }
+
+        .cfg-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 7px;
+        }
+
+        .cfg-label {
+            width: 110px;
+            flex-shrink: 0;
+            font-size: 10px;
+            color: #5a9070;
+            letter-spacing: 0.5px;
+        }
+
+        .cfg-input {
+            flex: 1;
+            background: #09090f;
+            border: 1px solid #1a2a22;
+            color: #00e87a;
+            padding: 5px 9px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .cfg-input:focus { border-color: #00aa55; }
+        .cfg-input::placeholder { color: #2a4a38; }
+
+        .cfg-check { accent-color: #00e87a; width: 14px; height: 14px; cursor: pointer; }
+
+        .modal-footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #1a2a22;
+        }
+
+        /* ── Leaflet ── */
+        .leaflet-container { background: #0a0a12; }
+        .leaflet-control-zoom a { background: #0d0d1c !important; color: #00e87a !important; border-color: #1a2a22 !important; }
+        .leaflet-control-attribution { background: rgba(10,10,18,0.7) !important; color: #3a6050 !important; font-size: 9px; }
+        .leaflet-control-attribution a { color: #3a8055 !important; }
+
+        /* ── Mission map controls ── */
+        .mission-ctrl-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .mission-ctrl-wrap .btn-map {
+            background: #0d1a14;
+            color: #00e87a;
+            border: 1px solid #1e4033;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            transition: all 0.15s;
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+        .mission-ctrl-wrap .btn-map:hover { background: #152b20; border-color: #00e87a; }
+        .mission-ctrl-wrap .btn-map.active { background: #1a3a20; border-color: #00e87a; color: #fff; }
+
+        /* ── Mission cursor ── */
+        .mission-active #map { cursor: crosshair !important; }
+
+        /* ── Mission sidebar content ── */
+        #mission-content { display: none; flex-direction: column; gap: 9px; }
+        #mission-content.visible { display: flex; }
+
+        .mission-name-input {
+            width: 100%;
+            background: #09090f;
+            border: 1px solid #1a2a22;
+            color: #00e87a;
+            padding: 6px 9px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+            margin-bottom: 4px;
+        }
+        .mission-name-input:focus { border-color: #00aa55; }
+        .mission-name-input::placeholder { color: #2a4a38; }
+
+        .mission-hint {
+            font-size: 9px;
+            color: #3a6a50;
+            letter-spacing: 0.5px;
+            text-align: center;
+            padding: 6px 0;
+        }
+
+        /* Waypoint list */
+        #wp-list { display: flex; flex-direction: column; gap: 5px; }
+
+        .wp-item {
+            background: #09090f;
+            border: 1px solid #1a2a22;
+            border-radius: 4px;
+            padding: 7px 8px;
+            display: grid;
+            grid-template-columns: 20px 1fr auto;
+            align-items: start;
+            gap: 6px;
+        }
+        .wp-num {
+            font-size: 11px;
+            color: #00e8cc;
+            font-weight: bold;
+            padding-top: 2px;
+        }
+        .wp-coords { display: flex; flex-direction: column; gap: 3px; }
+        .wp-coord-row { display: flex; align-items: center; gap: 4px; }
+        .wp-coord-label { font-size: 8px; color: #3a6a50; letter-spacing: 1px; width: 22px; flex-shrink: 0; }
+        .wp-coord-val {
+            flex: 1;
+            background: #050508;
+            border: 1px solid #111820;
+            color: #00ccff;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 10px;
+            outline: none;
+            width: 0;
+            min-width: 0;
+        }
+        .wp-coord-val:focus { border-color: #00aa55; }
+        .wp-del {
+            background: none;
+            border: none;
+            color: #5a2020;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 2px;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+        .wp-del:hover { color: #ff4444; }
+
+        .wp-empty {
+            font-size: 10px;
+            color: #2a4a38;
+            text-align: center;
+            padding: 16px 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mission action buttons row */
+        .mission-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .mission-actions .btn { flex: 1; text-align: center; font-size: 9px; padding: 6px 4px; }
+
+        /* ── Saved missions modal ── */
+        .saved-mission-item {
+            background: #09090f;
+            border: 1px solid #1a2a22;
+            border-radius: 4px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+        .saved-mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+        .saved-mission-name { font-size: 12px; color: #00e87a; font-weight: bold; }
+        .saved-mission-meta { font-size: 9px; color: #3a6050; margin-top: 2px; }
+        .saved-mission-actions { display: flex; gap: 5px; }
+        .saved-mission-actions .btn { font-size: 9px; padding: 4px 10px; }
+        .no-missions { color: #2a4a38; font-size: 11px; text-align: center; padding: 24px 0; letter-spacing: 1px; }
+
+        /* Drone mission overlay marker (orange, non-editable) */
+        .drone-wp-marker {
+            background: #ff8c00;
+            color: #fff;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(255,140,0,0.6);
+        }
+
+        /* Waypoint marker label */
+        .wp-marker-label {
+            background: #00e8cc;
+            color: #050508;
+            border-radius: 50%;
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid #fff;
+            box-shadow: 0 0 6px rgba(0,232,204,0.6);
+        }
+
+        /* ── Takeoff / Land wp rows ── */
+        .wp-item.wp-takeoff { border-color: #00aa55; background: #07150e; }
+        .wp-item.wp-takeoff .wp-num { color: #00e87a; font-size: 8px; letter-spacing: 1px; }
+        .wp-item.wp-land    { border-color: #cc5500; background: #150a00; }
+        .wp-item.wp-land .wp-num    { color: #ff8c00; font-size: 8px; letter-spacing: 1px; }
+
+        /* Land marker on map */
+        .land-marker {
+            background: #cc4400;
+            color: #fff;
+            border-radius: 4px;
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+            box-shadow: 0 0 6px rgba(204,68,0,0.7);
+            letter-spacing: 1px;
+        }
+
+        /* Drone mission overlay land marker */
+        .drone-land-marker {
+            background: #992200;
+            color: #fff;
+            border-radius: 4px;
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(153,34,0,0.6);
+        }
+
+        /* ── Tab bar ── */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #1a2a22;
+            margin: -10px -10px 4px -10px;
+            padding: 0;
+            flex-shrink: 0;
+            background: #0a0a16;
+        }
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #3a7a55;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 7px 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .tab-btn:hover { color: #00e87a; }
+        .tab-btn.active { color: #00e87a; border-bottom-color: #00e87a; background: #0d0d1c; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+    <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e87a" stroke-width="1.5">
+            <circle cx="12" cy="12" r="2"/>
+            <line x1="12" y1="10" x2="12" y2="4"/>
+            <circle cx="12" cy="3" r="2"/>
+            <line x1="14" y1="12" x2="20" y2="12"/>
+            <circle cx="21" cy="12" r="2"/>
+            <line x1="12" y1="14" x2="12" y2="20"/>
+            <circle cx="12" cy="21" r="2"/>
+            <line x1="10" y1="12" x2="4" y2="12"/>
+            <circle cx="3" cy="12" r="2"/>
+        </svg>
+        DRONE GCS
+    </div>
+    <div class="header-right">
+        <div class="conn-pill">
+            <div class="conn-dot disconnected" id="connDot"></div>
+            <span id="connLabel">DISCONNECTED</span>
+        </div>
+        <button class="btn" onclick="openModal()">&#9881; SETTINGS</button>
+        <button class="btn" id="connBtn" onclick="toggleConnection()">CONNECT</button>
+    </div>
+</header>
+
+<!-- ── Main ── -->
+<main>
+    <div id="map"></div>
+
+    <div id="sidebar">
+
+        <!-- ── Tab bar ── -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tabTelem"   onclick="switchTab('telem')">&#128225; TELEMETRY</button>
+            <button class="tab-btn"        id="tabMission" onclick="switchTab('mission')">&#9999; MISSION</button>
+        </div>
+
+        <!-- ── Telemetry content ── -->
+        <div id="telem-content">
+
+        <!-- Attitude + Status (side by side) -->
+        <div class="panel">
+            <div style="display:flex; gap:5px; align-items:stretch;">
+
+                <!-- Status column -->
+                <div style="width:68px; flex-shrink:0; display:flex; flex-direction:column; gap:3px;">
+                    <div class="stat-cell" id="armedTile" style="flex:1; min-height:0; cursor:pointer;" title="Click to arm / disarm" onclick="toggleArm()">
+                        <div class="stat-label">Armed &#9654;</div>
+                        <div class="stat-val warn" id="stArmed">DISARMD</div>
+                    </div>
+                    <div class="stat-cell" style="flex:1; min-height:0;">
+                        <div class="stat-label">Arm Rdy</div>
+                        <div class="stat-val alert" id="stArmReady">---</div>
+                    </div>
+                    <div class="stat-cell" style="flex:1; min-height:0;">
+                        <div class="stat-label">GPS</div>
+                        <div class="stat-val alert" id="stGps">---</div>
+                    </div>
+                    <div class="stat-cell" style="flex:1; min-height:0;">
+                        <div class="stat-label">GPS Lvl</div>
+                        <div class="stat-val" id="stGpsLvl">-</div>
+                    </div>
+                    <div class="stat-cell" id="modeTile" style="flex:1; min-height:0; cursor:pointer;" title="Click to set GUIDED" onclick="setGuidedMode()">
+                        <div class="stat-label">Mode &#9654;</div>
+                        <div class="stat-val ok" id="stMode" style="font-size:9px; letter-spacing:0.5px;">---</div>
+                    </div>
+                </div>
+
+                <!-- Attitude canvas -->
+                <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+                    <canvas id="attitude-canvas" width="186" height="172" style="border-radius:50%; display:block;"></canvas>
+                </div>
+
+            </div>
+            <!-- Readouts below the row -->
+            <div class="attitude-readouts" style="margin-top:5px;">
+                <div>
+                    <div class="att-label">ROLL</div>
+                    <div class="att-val" id="rollVal">0.0°</div>
+                </div>
+                <div style="text-align:center;">
+                    <div class="att-label">HDG</div>
+                    <div style="font-size:16px; color:#00e8cc; font-variant-numeric:tabular-nums;" id="hdgVal">---°</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="att-label">PITCH</div>
+                    <div class="att-val" id="pitchVal">0.0°</div>
+                </div>
+            </div>
+            <div class="alt-row" style="margin-top:5px; padding-top:5px; border-top:1px solid #1a2a22;">
+                <div>
+                    <div class="alt-num" id="altRel">--.-</div>
+                    <div class="alt-unit">m AGL</div>
+                </div>
+                <div style="width:1px; background:#1a2a22;"></div>
+                <div>
+                    <div class="alt-num" id="altMsl">----</div>
+                    <div class="alt-unit">m MSL</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Battery -->
+        <div class="panel">
+            <div class="panel-title">Battery
+                <span id="missionSpeedTile" style="margin-left:auto; font-size:9px; color:#3a7a55; letter-spacing:1px;">MIS&nbsp;<span id="missionSpeedVal" style="color:#00e87a;">-.- m/s</span></span>
+                <button id="btnRefreshMission" onclick="refreshDroneMission()" style="margin-left:6px; font-size:8px; padding:2px 8px;" class="btn">&#8635; MISSION</button>
+            </div>
+            <div class="batt-row">
+                <div>
+                    <span style="font-size:9px; color:#3a7a55;">VOLT&nbsp;</span>
+                    <span style="color:#00e87a;" id="battV">--.- V</span>
+                </div>
+                <div>
+                    <span style="font-size:9px; color:#3a7a55;">CURR&nbsp;</span>
+                    <span style="color:#aaa;" id="battA">-.- A</span>
+                </div>
+                <div>
+                    <span style="font-size:9px; color:#3a7a55;">REM&nbsp;</span>
+                    <span id="battPctLbl">--%</span>
+                </div>
+            </div>
+            <div class="batt-bar-bg">
+                <div class="batt-bar-fill" id="battBar" style="width:0%; background:#00e87a;"></div>
+            </div>
+        </div>
+
+        <!-- Video Feed -->
+        <div class="panel" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div class="panel-title">
+                Video Feed
+                <button id="btnCamera" class="btn" style="margin-left:auto; font-size:8px; padding:3px 10px;" onclick="toggleCamera()">&#9654; CAM ON</button>
+            </div>
+            <div id="video-wrap">
+                <video id="video-feed" autoplay muted playsinline></video>
+                <img   id="video-feed-img" alt="video feed" />
+                <div id="video-placeholder">
+                    <span class="no-signal-icon">&#128247;</span>
+                    NO SIGNAL<br>
+                    <span id="video-ph-msg" style="font-size:8px;">Camera OFF</span>
+                </div>
+            </div>
+            <div id="video-url-debug" style="font-size:8px; color:#3a7a55; word-break:break-all; margin-top:5px; min-height:1em;">—</div>
+        </div>
+
+        <button class="btn" id="btnStartMission" onclick="startMissionSequence()"
+            style="width:100%; padding:10px 0; font-size:13px; font-weight:bold; letter-spacing:1px; background:#1a0a00; border-color:#ff6600; color:#ff9933; flex-shrink:0;">
+            &#9654;&#9654; START MISSION
+        </button>
+
+        </div><!-- /telem-content -->
+
+        <!-- ── Mission editor content ── -->
+        <div id="mission-content">
+
+            <div class="panel">
+                <div class="mission-actions">
+                    <button class="btn" style="flex:1;" onclick="openSavedMissions()">&#128190; SAVED</button>
+                    <button class="btn" id="btnLoadFromDroneTab" style="flex:1;" onclick="getMissionFromDrone()">&#8595; FROM DRONE</button>
+                    <button class="btn" id="btnSendMissionCurrent" style="flex:1; background:#0a2a1a; border-color:#00aa55;" onclick="sendCurrentMission()">&#8593; SEND</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Mission Name</div>
+                <input class="mission-name-input" id="missionName" type="text" placeholder="Unnamed Mission">
+                <div style="display:flex; align-items:center; gap:6px; margin-top:6px;">
+                    <span style="font-size:9px; color:#3a7a55; letter-spacing:1px;">SPEED</span>
+                    <input id="missionSpeedInput" type="number" step="0.5" min="0.5" max="20" value="5"
+                           style="width:60px; background:#09090f; border:1px solid #1a3028; color:#00e87a; padding:3px 6px; font-family:inherit; font-size:11px; border-radius:2px;">
+                    <span style="font-size:9px; color:#3a7a55;">m/s</span>
+                </div>
+                <div class="mission-hint">&#9654; Click on the map to add waypoints</div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Waypoints</div>
+                <div id="wp-list">
+                    <div class="wp-empty" id="wp-empty">No waypoints yet</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="mission-actions">
+                    <button class="btn" id="btnSaveMission"   onclick="saveMission()"      style="background:#0a2a1a; border-color:#00aa55;">&#128190; SAVE</button>
+                    <button class="btn" id="btnUpdateMission" onclick="updateMission()"    style="display:none; background:#0a2a1a; border-color:#00aa55;">&#9999; UPDATE</button>
+                    <button class="btn" id="btnSaveAsNew"     onclick="saveAsNewMission()" style="display:none;">&#128203; SAVE AS NEW</button>
+                    <button class="btn" onclick="clearWaypoints()">&#10005; CLEAR</button>
+                </div>
+            </div>
+
+        </div><!-- /mission-content -->
+
+    </div><!-- /sidebar -->
+</main>
+
+<!-- ── Settings Modal ── -->
+<div class="overlay" id="overlay">
+    <div class="modal">
+        <h2>&#9881; GCS Configuration</h2>
+
+        <div class="cfg-section-title">MQTT Broker</div>
+
+        <div class="cfg-row">
+            <span class="cfg-label">Host / IP</span>
+            <input class="cfg-input" id="cfgHost" type="text" placeholder="192.168.1.100">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">WebSocket Port</span>
+            <input class="cfg-input" id="cfgPort" type="number" placeholder="9001" style="width:90px; flex:none;">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Use TLS (wss://)</span>
+            <input class="cfg-check" id="cfgTls" type="checkbox">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Username</span>
+            <input class="cfg-input" id="cfgUser" type="text" placeholder="optional">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Password</span>
+            <input class="cfg-input" id="cfgPass" type="password" placeholder="optional">
+        </div>
+
+        <div class="cfg-section-title">Topics</div>
+
+        <div class="cfg-row">
+            <span class="cfg-label">Attitude</span>
+            <input class="cfg-input" id="cfgTAttitude" type="text" placeholder="/drone_001/attitude">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Position</span>
+            <input class="cfg-input" id="cfgTPosition" type="text" placeholder="/drone_001/position">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">State</span>
+            <input class="cfg-input" id="cfgTState" type="text" placeholder="/drone_001/state">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Battery</span>
+            <input class="cfg-input" id="cfgTBattery" type="text" placeholder="/drone_001/battery_status">
+        </div>
+
+        <div class="cfg-section-title">Mission</div>
+        <div class="cfg-row">
+            <span class="cfg-label">Upload Topic</span>
+            <input class="cfg-input" id="cfgTMission" type="text" placeholder="/drone_001/cmd/mission">
+        </div>
+        <div class="cfg-row">
+            <span class="cfg-label">Get Mission Res</span>
+            <input class="cfg-input" id="cfgTMissionGetRes" type="text" placeholder="/drone_001/res/mission/get">
+        </div>
+
+        <div class="cfg-section-title">Camera</div>
+        <div class="cfg-row">
+            <span class="cfg-label">Camera Res Base</span>
+            <input class="cfg-input" id="cfgTCameraRes" type="text" placeholder="/drone_001/res/camera">
+        </div>
+
+        <div class="cfg-section-title">Video (manual fallback)</div>
+        <div class="cfg-row">
+            <span class="cfg-label">Stream URL</span>
+            <input class="cfg-input" id="cfgVideoUrl" type="text" placeholder="http://... (MJPEG/img src)">
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn danger" onclick="closeModal()">CANCEL</button>
+            <button class="btn" onclick="saveSettings()">SAVE &amp; CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Saved Missions Modal ── -->
+<div class="overlay" id="savedMissionsOverlay">
+    <div class="modal" style="width:540px;">
+        <h2>&#128190; Saved Missions</h2>
+        <div id="savedMissionsList"></div>
+        <div class="modal-footer">
+            <button class="btn" onclick="document.getElementById('savedMissionsOverlay').classList.remove('open')">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Scripts ── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+<script src="streaming.osprean.net_files/reader.js"></script>
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────────────
+const drone = {
+    roll:  0, pitch: 0, yaw: 0,
+    lat: null, lon: null, altMsl: 0, altRel: 0,
+    battV: 0, battA: 0, battPct: 0,
+    armed: false, armReady: false, gpsLock: false, gpsLevel: 0, flightMode: '---'
+};
+
+let cfg = {
+    host: '', port: 9001, tls: false, user: '', pass: '',
+    tAttitude: '/drone_001/attitude',
+    tPosition: '/drone_001/position',
+    tState:    '/drone_001/state',
+    tBattery:  '/drone_001/battery_status',
+    tMission:  '/drone_001/cmd/mission',
+    tMissionGetRes: '/drone_001/res/mission/get',
+    tCameraRes: '/drone_001/res/camera',
+    videoUrl: ''
+};
+
+// ─────────────────────────────────────────────────────────────────
+//  Map
+// ─────────────────────────────────────────────────────────────────
+const map = L.map('map', { center: [40.6795, -4.8795], zoom: 17 });
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+}).addTo(map);
+
+let droneMarker = null;
+let firstFix = true;
+
+function makeDroneIcon(yaw) {
+    // Drone top-view SVG: arms + rotors + heading arrow
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="-22 -22 44 44">
+      <g transform="rotate(${yaw})">
+        <line x1="0" y1="0" x2="13" y2="-13" stroke="#00e87a" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-13" y2="-13" stroke="#00e87a" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="13" y2="13"  stroke="#00e87a" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-13" y2="13" stroke="#00e87a" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15"  cy="-15" r="5.5" fill="none" stroke="#00e87a" stroke-width="1.5"/>
+        <circle cx="-15" cy="-15" r="5.5" fill="none" stroke="#00e87a" stroke-width="1.5"/>
+        <circle cx="15"  cy="15"  r="5.5" fill="none" stroke="#00e87a" stroke-width="1.5"/>
+        <circle cx="-15" cy="15"  r="5.5" fill="none" stroke="#00e87a" stroke-width="1.5"/>
+        <circle cx="0" cy="0" r="4" fill="#00e87a"/>
+        <!-- heading arrow points up (north before yaw rotation) -->
+        <polygon points="0,-7 3.5,-1 -3.5,-1" fill="#fff"/>
+      </g>
+    </svg>`;
+    return L.divIcon({ html: svg, iconSize: [44,44], iconAnchor: [22,22], className: '' });
+}
+
+function updateMap() {
+    if (drone.lat === null) return;
+    const ll = [drone.lat, drone.lon];
+    const icon = makeDroneIcon(drone.yaw);
+    if (!droneMarker) {
+        droneMarker = L.marker(ll, { icon }).addTo(map);
+    } else {
+        droneMarker.setLatLng(ll);
+        droneMarker.setIcon(icon);
+    }
+    if (firstFix) { map.setView(ll, 17); firstFix = false; }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Attitude Indicator (canvas)
+// ─────────────────────────────────────────────────────────────────
+const cvs = document.getElementById('attitude-canvas');
+const ctx2 = cvs.getContext('2d');
+const CW = cvs.width, CH = cvs.height;
+const CX = CW / 2, CY = CH / 2;
+const R  = Math.min(CW, CH) / 2 - 6;   // main radius
+
+function drawAI() {
+    const roll  = drone.roll  * Math.PI / 180;
+    const pitch = drone.pitch;
+
+    ctx2.clearRect(0, 0, CW, CH);
+
+    // ── clip to circle ──
+    ctx2.save();
+    ctx2.beginPath();
+    ctx2.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx2.clip();
+
+    // ── rotating horizon group ──
+    ctx2.save();
+    ctx2.translate(CX, CY);
+    ctx2.rotate(roll);
+
+    // pitch offset: 3.5 px per degree
+    const pxPerDeg = R / 40;
+    const py = pitch * pxPerDeg;
+
+    // sky
+    ctx2.fillStyle = '#0e2a52';
+    ctx2.fillRect(-R * 2, -R * 2 - py, R * 4, R * 4);
+
+    // ground
+    ctx2.fillStyle = '#3b2008';
+    ctx2.fillRect(-R * 2, -py, R * 4, R * 4);
+
+    // horizon
+    ctx2.strokeStyle = '#ffffff';
+    ctx2.lineWidth = 2;
+    ctx2.beginPath();
+    ctx2.moveTo(-R * 2, -py);
+    ctx2.lineTo( R * 2, -py);
+    ctx2.stroke();
+
+    // pitch ladder
+    ctx2.font = '8px Courier New';
+    ctx2.textAlign = 'center';
+    for (let d = -40; d <= 40; d += 5) {
+        if (d === 0) continue;
+        const y = -py + d * pxPerDeg;
+        const len = (d % 10 === 0) ? 26 : 12;
+        ctx2.strokeStyle = 'rgba(255,255,255,0.65)';
+        ctx2.lineWidth = (d % 10 === 0) ? 1.5 : 1;
+        ctx2.beginPath();
+        ctx2.moveTo(-len, y);
+        ctx2.lineTo( len, y);
+        ctx2.stroke();
+        if (d % 10 === 0) {
+            ctx2.fillStyle = 'rgba(255,255,255,0.75)';
+            ctx2.fillText(Math.abs(d),  len + 11, y + 3);
+            ctx2.fillText(Math.abs(d), -len - 11, y + 3);
+        }
+    }
+
+    ctx2.restore(); // end rotating group
+
+    // ── roll arc & tick marks (fixed) ──
+    const arcR = R - 7;
+    ctx2.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    ctx2.arc(CX, CY, arcR, Math.PI * 1.13, Math.PI * 1.87);
+    ctx2.stroke();
+
+    [-60,-45,-30,-20,-10,0,10,20,30,45,60].forEach(deg => {
+        const rad = (deg - 90) * Math.PI / 180;
+        const isMajor = deg % 30 === 0 || deg === 0;
+        const len = isMajor ? 10 : 6;
+        const rInner = arcR - len, rOuter = arcR;
+        ctx2.save();
+        ctx2.translate(CX, CY);
+        ctx2.rotate(deg * Math.PI / 180);
+        ctx2.strokeStyle = isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)';
+        ctx2.lineWidth = isMajor ? 1.5 : 1;
+        ctx2.beginPath();
+        ctx2.moveTo(0, -rInner);
+        ctx2.lineTo(0, -rOuter);
+        ctx2.stroke();
+        ctx2.restore();
+    });
+
+    // fixed triangle (roll reference at top)
+    ctx2.save();
+    ctx2.translate(CX, CY);
+    ctx2.fillStyle = '#ffffff';
+    ctx2.beginPath();
+    ctx2.moveTo(0, -(arcR - 10));
+    ctx2.lineTo(-4, -(arcR - 17));
+    ctx2.lineTo( 4, -(arcR - 17));
+    ctx2.closePath();
+    ctx2.fill();
+    ctx2.restore();
+
+    // rotating roll pointer (orange)
+    ctx2.save();
+    ctx2.translate(CX, CY);
+    ctx2.rotate(roll);
+    ctx2.fillStyle = '#ff9900';
+    ctx2.beginPath();
+    ctx2.moveTo(0, -(arcR + 2));
+    ctx2.lineTo(-4, -(arcR - 6));
+    ctx2.lineTo( 4, -(arcR - 6));
+    ctx2.closePath();
+    ctx2.fill();
+    ctx2.restore();
+
+    // ── fixed aircraft symbol ──
+    ctx2.strokeStyle = '#ffe040';
+    ctx2.lineWidth = 2.5;
+    ctx2.lineCap = 'round';
+    ctx2.beginPath();
+    ctx2.moveTo(CX - 38, CY);
+    ctx2.lineTo(CX - 10, CY);
+    ctx2.stroke();
+    ctx2.beginPath();
+    ctx2.moveTo(CX + 10, CY);
+    ctx2.lineTo(CX + 38, CY);
+    ctx2.stroke();
+    ctx2.fillStyle = '#ffe040';
+    ctx2.beginPath();
+    ctx2.arc(CX, CY, 4, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.strokeStyle = '#ffe040';
+    ctx2.lineWidth = 2;
+    ctx2.beginPath();
+    ctx2.moveTo(CX - 6, CY - 5);
+    ctx2.lineTo(CX, CY);
+    ctx2.lineTo(CX + 6, CY - 5);
+    ctx2.stroke();
+
+    ctx2.restore(); // end clip
+
+    // border ring
+    ctx2.strokeStyle = '#1a2a22';
+    ctx2.lineWidth = 3;
+    ctx2.beginPath();
+    ctx2.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx2.stroke();
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  UI update
+// ─────────────────────────────────────────────────────────────────
+function updateUI() {
+    drawAI();
+
+    document.getElementById('rollVal').textContent  = drone.roll.toFixed(1) + '°';
+    document.getElementById('pitchVal').textContent = drone.pitch.toFixed(1) + '°';
+    document.getElementById('hdgVal').textContent   = drone.yaw.toFixed(1) + '°';
+
+    document.getElementById('altRel').textContent = drone.altRel.toFixed(1);
+    document.getElementById('altMsl').textContent = drone.altMsl.toFixed(0);
+
+    // Armed
+    const armedEl = document.getElementById('stArmed');
+    armedEl.textContent  = drone.armed ? 'ARMED' : 'DISARMED';
+    armedEl.className    = 'stat-val ' + (drone.armed ? 'armed' : 'warn');
+
+    // Arm Ready
+    const arEl = document.getElementById('stArmReady');
+    arEl.textContent = drone.armReady ? 'READY' : 'NOT READY';
+    arEl.className   = 'stat-val ' + (drone.armReady ? 'ok' : 'alert');
+
+    // GPS
+    const gEl = document.getElementById('stGps');
+    gEl.textContent = drone.gpsLock ? 'LOCKED' : 'NO LOCK';
+    gEl.className   = 'stat-val ' + (drone.gpsLock ? 'ok' : 'alert');
+
+    const lvlEl = document.getElementById('stGpsLvl');
+    lvlEl.textContent = drone.gpsLevel + ' / 3';
+    lvlEl.className   = 'stat-val ' + (drone.gpsLevel >= 3 ? 'ok' : drone.gpsLevel >= 2 ? 'warn' : 'alert');
+
+    // Flight mode
+    document.getElementById('stMode').textContent = drone.flightMode;
+
+    // Battery
+    document.getElementById('battV').textContent      = drone.battV.toFixed(2) + ' V';
+    document.getElementById('battA').textContent      = drone.battA.toFixed(2) + ' A';
+    document.getElementById('battPctLbl').textContent = drone.battPct.toFixed(0) + '%';
+    const bar = document.getElementById('battBar');
+    bar.style.width      = Math.min(100, drone.battPct) + '%';
+    bar.style.background = drone.battPct > 50 ? '#00e87a' : drone.battPct > 20 ? '#ffaa00' : '#ff4444';
+
+    updateMap();
+}
+
+// initial draw
+drawAI();
+setInterval(drawAI, 66); // ~15 fps redraw for smooth animation
+
+// ─────────────────────────────────────────────────────────────────
+//  MQTT
+// ─────────────────────────────────────────────────────────────────
+let client = null;
+
+function setConnUI(state) {
+    const dot   = document.getElementById('connDot');
+    const label = document.getElementById('connLabel');
+    const btn   = document.getElementById('connBtn');
+
+    dot.className = 'conn-dot ' + state;
+
+    if (state === 'connected') {
+        label.textContent = 'CONNECTED';
+        label.style.color = '#00e87a';
+        btn.textContent   = 'DISCONNECT';
+        btn.className     = 'btn danger';
+    } else if (state === 'connecting') {
+        label.textContent = 'CONNECTING…';
+        label.style.color = '#ffaa00';
+        btn.textContent   = 'CANCEL';
+        btn.className     = 'btn';
+    } else {
+        label.textContent = 'DISCONNECTED';
+        label.style.color = '#555';
+        btn.textContent   = 'CONNECT';
+        btn.className     = 'btn';
+    }
+}
+
+function toggleConnection() {
+    if (client && client.connected) {
+        client.end(true);
+        client = null;
+        setConnUI('disconnected');
+    } else {
+        connect();
+    }
+}
+
+function connect() {
+    if (!cfg.host) { openModal(); return; }
+
+    setConnUI('connecting');
+
+    const proto = cfg.tls ? 'wss' : 'ws';
+    const url   = `${proto}://${cfg.host}:${cfg.port}/mqtt`;
+
+    const opts = {
+        clientId: 'gcs_' + Math.random().toString(16).slice(2, 10),
+        clean: true,
+        reconnectPeriod: 5000
+    };
+    if (cfg.user) opts.username = cfg.user;
+    if (cfg.pass) opts.password = cfg.pass;
+
+    client = mqtt.connect(url, opts);
+
+    client.on('connect', () => {
+        setConnUI('connected');
+        const tMissionRes = cfg.tMission ? cfg.tMission.replace('/cmd/', '/res/') : null;
+        const _ns = cfg.tMission ? cfg.tMission.replace(/\/cmd\/.*$/, '') : null;
+        [
+            cfg.tAttitude, cfg.tPosition, cfg.tState, cfg.tBattery,
+            cfg.tMissionGetRes,
+            tMissionRes,
+            cfg.tCameraRes + '/on', cfg.tCameraRes + '/off',
+            cfg.tCameraRes + '/status',
+            _ns ? _ns + '/res/arm' : null,
+            _ns ? _ns + '/res/disarm' : null,
+            _ns ? _ns + '/res/start_mission' : null,
+            _ns ? _ns + '/res/set_mode/guided' : null,
+        ].filter(t => t && t !== cfg.tMission).forEach(t => client.subscribe(t));
+
+        // Query current camera state so a page reload restores the stream
+        if (cfg.tCameraRes) {
+            const cmdStatus = cfg.tCameraRes.replace('/res/', '/cmd/') + '/status';
+            client.publish(cmdStatus, JSON.stringify({}), { qos: 1 });
+        }
+        // Auto-fetch drone mission to display on telemetry map
+        if (cfg.tMissionGetRes) {
+            _missionLoadToEditor = false;
+            client.publish(cfg.tMissionGetRes.replace('/res/', '/cmd/'), JSON.stringify({}), { qos: 1 });
+        }
+    });
+
+    client.on('message', (topic, payload) => {
+        let d;
+        try { d = JSON.parse(payload.toString()); } catch { return; }
+
+        if (topic === cfg.tAttitude) {
+            if (d.roll_deg  !== undefined) drone.roll  = d.roll_deg;
+            if (d.pitch_deg !== undefined) drone.pitch = d.pitch_deg;
+            if (d.yaw_deg   !== undefined) drone.yaw   = d.yaw_deg;
+
+        } else if (topic === cfg.tPosition) {
+            if (d.lat_deg    !== undefined) drone.lat    = d.lat_deg;
+            if (d.lon_deg    !== undefined) drone.lon    = d.lon_deg;
+            if (d.alt_msl_m  !== undefined) drone.altMsl = d.alt_msl_m;
+            if (d.alt_rel_m  !== undefined) drone.altRel = d.alt_rel_m;
+
+        } else if (topic === cfg.tState) {
+            if (d.armed        !== undefined) drone.armed    = d.armed;
+            if (d.arming_ready !== undefined) drone.armReady = d.arming_ready;
+            if (d.gps_lock     !== undefined) drone.gpsLock  = d.gps_lock;
+            if (d.gps_lock_level !== undefined) drone.gpsLevel   = d.gps_lock_level;
+            if (d.flight_mode   !== undefined) drone.flightMode = d.flight_mode;
+
+        } else if (topic === cfg.tBattery) {
+            if (d.voltage_v !== undefined) {
+                drone.battV   = d.voltage_v;
+                drone.battPct = Math.min(100, Math.max(0, (d.voltage_v - 12.8) / 4.0 * 100));
+            }
+            if (d.current_a !== undefined) drone.battA = d.current_a;
+
+        } else if (cfg.tMission && topic === cfg.tMission.replace('/cmd/', '/res/')) {
+            if (d.success && cfg.tMissionGetRes) {
+                const cmdTopic = cfg.tMissionGetRes.replace('/res/', '/cmd/');
+                if (cmdTopic && cmdTopic !== cfg.tMissionGetRes) {
+                    _missionLoadToEditor = false;
+                    client.publish(cmdTopic, JSON.stringify({}), { qos: 1 });
+                }
+            }
+
+        } else if (topic === cfg.tMissionGetRes) {
+            const btn = document.getElementById('btnRefreshMission');
+            if (btn) { btn.disabled = false; btn.innerHTML = '&#8635; REFRESH MISSION'; }
+            if (d.success && d.data && Array.isArray(d.data.mission_items)) {
+                missionSpeedDisplay = d.data.speed_ms ?? null;
+                _updateMissionSpeedTile();
+                showDroneMissionOnMap(d.data.mission_items);
+                if (_missionLoadToEditor) loadWaypointsFromDrone(d.data.mission_items, d.data.speed_ms);
+            } else if (_missionLoadToEditor) {
+                alert('Failed to load mission from drone:\n' + (d.message || 'Unknown error'));
+            }
+            _missionLoadToEditor = false;
+
+        } else if (topic === cfg.tCameraRes + '/on') {
+            const dbg = document.getElementById('video-url-debug');
+            if (dbg) dbg.textContent = 'MQTT res: ' + JSON.stringify(d);
+            if (d.success && d.data && d.data.stream_url) {
+                applyVideoUrl(d.data.stream_url);
+                setCameraUI(true);
+            } else {
+                setCameraUI(false);
+                alert('Camera failed to start:\n' + (d.message || 'Unknown error'));
+            }
+
+        } else if (topic === cfg.tCameraRes + '/off') {
+            stopVideo();
+            setCameraUI(false);
+            if (!d.success) alert('Camera stop error:\n' + (d.message || 'Unknown error'));
+
+        } else if (topic === cfg.tCameraRes + '/status') {
+            if (d.success && d.data && d.data.camera_on && d.data.stream_url) {
+                applyVideoUrl(d.data.stream_url);
+                setCameraUI(true);
+            }
+
+        } else {
+            const _ns2 = cfg.tMission ? cfg.tMission.replace(/\/cmd\/.*$/, '') : null;
+            if (_ns2 && topic === _ns2 + '/res/disarm') {
+                const tile = document.getElementById('armedTile');
+                if (tile) tile.style.opacity = '1';
+                if (!d.success) alert('Disarm failed:\n' + (d.message || 'Unknown error'));
+            } else if (_ns2 && topic === _ns2 + '/res/arm') {
+                _onArmResponse(d);
+            } else if (_ns2 && topic === _ns2 + '/res/start_mission') {
+                _onStartMissionResponse(d);
+            } else if (_ns2 && topic === _ns2 + '/res/set_mode/guided') {
+                _onSetGuidedResponse(d);
+            }
+        }
+
+        updateUI();
+    });
+
+    client.on('error',     () => setConnUI('disconnected'));
+    client.on('close',     () => setConnUI('disconnected'));
+    client.on('reconnect', () => setConnUI('connecting'));
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Video
+// ─────────────────────────────────────────────────────────────────
+let hlsInstance = null;
+let whepReader  = null;  // MediaMTXWebRTCReader for WebRTC/WHEP
+
+function stopVideo() {
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    if (whepReader)  { whepReader.close();    whepReader  = null; }
+    const vidEl = document.getElementById('video-feed');
+    vidEl.srcObject = null;
+    vidEl.src       = '';
+}
+
+// WHEP via MediaMTXWebRTCReader (handles trickle-ICE and retries correctly)
+function startWhep(whepUrl, vidEl) {
+    const ph  = document.getElementById('video-placeholder');
+    const dbg = document.getElementById('video-url-debug');
+    whepReader = new MediaMTXWebRTCReader({
+        url: whepUrl,
+        onError: (err) => {
+            console.error('WHEP error:', err);
+            if (dbg) dbg.textContent = 'WHEP: ' + err;
+        },
+        onTrack: (evt) => {
+            vidEl.srcObject = evt.streams[0];
+            vidEl.play().catch(() => {});
+            vidEl.style.display = 'block';
+            ph.style.display    = 'none';
+        },
+    });
+}
+
+function applyVideoUrl(url) {
+    const vidEl = document.getElementById('video-feed');
+    const imgEl = document.getElementById('video-feed-img');
+    const ph    = document.getElementById('video-placeholder');
+    const dbg   = document.getElementById('video-url-debug');
+    if (dbg) dbg.textContent = url || '—';
+
+    stopVideo();
+    vidEl.style.display = 'none';
+    imgEl.style.display = 'none';
+    ph.style.display    = 'flex';
+
+    if (!url) return;
+
+    // MJPEG / still image
+    if (/\.(jpg|jpeg|png|gif|mjpg|mjpeg)(\?.*)?$/i.test(url)) {
+        imgEl.src           = url;
+        imgEl.style.display = 'block';
+        ph.style.display    = 'none';
+        return;
+    }
+
+    // WHEP / WebRTC: URL ends with /whep, or ends with / (MediaMTX pattern)
+    const isWhep = /\/whep(\?.*)?$/i.test(url) || url.endsWith('/');
+    if (isWhep) {
+        const whepUrl = url.endsWith('/') ? url + 'whep' : url;
+        startWhep(whepUrl, vidEl);
+        return;
+    }
+
+    // HLS
+    if (/\.m3u8(\?.*)?$/i.test(url)) {
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            hlsInstance = new Hls({ lowLatencyMode: true });
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(vidEl);
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => vidEl.play().catch(() => {}));
+        } else if (vidEl.canPlayType('application/vnd.apple.mpegurl')) {
+            vidEl.src = url;
+            vidEl.play().catch(() => {});
+        }
+        vidEl.style.display = 'block';
+        ph.style.display    = 'none';
+        return;
+    }
+
+    // Generic video (mp4, webm…)
+    vidEl.src           = url;
+    vidEl.style.display = 'block';
+    ph.style.display    = 'none';
+    vidEl.play().catch(() => {});
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Modal
+// ─────────────────────────────────────────────────────────────────
+function openModal() {
+    document.getElementById('cfgHost').value      = cfg.host;
+    document.getElementById('cfgPort').value      = cfg.port;
+    document.getElementById('cfgTls').checked     = cfg.tls;
+    document.getElementById('cfgUser').value      = cfg.user;
+    document.getElementById('cfgPass').value      = cfg.pass;
+    document.getElementById('cfgTAttitude').value = cfg.tAttitude;
+    document.getElementById('cfgTPosition').value = cfg.tPosition;
+    document.getElementById('cfgTState').value    = cfg.tState;
+    document.getElementById('cfgTBattery').value  = cfg.tBattery;
+    document.getElementById('cfgTMission').value       = cfg.tMission;
+    document.getElementById('cfgTMissionGetRes').value = cfg.tMissionGetRes;
+    document.getElementById('cfgTCameraRes').value     = cfg.tCameraRes;
+    document.getElementById('cfgVideoUrl').value       = cfg.videoUrl;
+    document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() {
+    document.getElementById('overlay').classList.remove('open');
+}
+
+function saveSettings() {
+    cfg.host      = document.getElementById('cfgHost').value.trim();
+    cfg.port      = parseInt(document.getElementById('cfgPort').value) || 9001;
+    cfg.tls       = document.getElementById('cfgTls').checked;
+    cfg.user      = document.getElementById('cfgUser').value.trim();
+    cfg.pass      = document.getElementById('cfgPass').value;
+    cfg.tAttitude = document.getElementById('cfgTAttitude').value.trim();
+    cfg.tPosition = document.getElementById('cfgTPosition').value.trim();
+    cfg.tState    = document.getElementById('cfgTState').value.trim();
+    cfg.tBattery  = document.getElementById('cfgTBattery').value.trim();
+    cfg.tMission       = document.getElementById('cfgTMission').value.trim();
+    cfg.tMissionGetRes = document.getElementById('cfgTMissionGetRes').value.trim();
+    cfg.tCameraRes     = document.getElementById('cfgTCameraRes').value.trim();
+    cfg.videoUrl       = document.getElementById('cfgVideoUrl').value.trim();
+
+    // Video
+    applyVideoUrl(cfg.videoUrl);
+
+    try { localStorage.setItem('gcs_cfg', JSON.stringify(cfg)); } catch {}
+    closeModal();
+}
+
+// close on backdrop click
+document.getElementById('overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('overlay')) closeModal();
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  Restore saved config
+// ─────────────────────────────────────────────────────────────────
+try {
+    const saved = localStorage.getItem('gcs_cfg');
+    if (saved) Object.assign(cfg, JSON.parse(saved));
+} catch {}
+
+if (cfg.videoUrl) applyVideoUrl(cfg.videoUrl);
+
+// ─────────────────────────────────────────────────────────────────
+//  Missions
+// ─────────────────────────────────────────────────────────────────
+let missionMode    = false;
+let editingIdx     = null;        // index in savedMissions being edited, or null for new
+let currentWPs     = [];          // { lat, lon, alt, marker } — middle waypoints only
+let wpPolyline     = null;
+let savedMissions  = [];
+
+// Fixed first / last items
+let takeoffItem = { alt: 10 };
+let landItem    = { lat: null, lon: null, alt: 5 };
+let landMarker  = null;
+let missionSpeed         = 5;      // m/s, applied to the mission being edited
+let missionSpeedDisplay  = null;   // m/s, last value seen on the drone (for telemetry tile)
+
+// Drone mission overlay (telemetry view — orange, non-editable)
+let droneMissionMarkers  = [];
+let droneMissionPolyline = null;
+let _missionLoadToEditor  = false;  // true when Load From Drone button triggered the fetch
+let _startMissionState    = null;   // null | 'arming' | 'starting'
+
+function showDroneMissionOnMap(missionItems) {
+    droneMissionMarkers.forEach(m => m.remove());
+    droneMissionMarkers = [];
+    if (droneMissionPolyline) { droneMissionPolyline.remove(); droneMissionPolyline = null; }
+    if (!missionItems || missionItems.length === 0) return;
+
+    const latlngs = [];
+    let wpNum = 1;
+    missionItems.forEach(item => {
+        if (item.type === 'takeoff') return; // no position to plot
+        if (!item.lat && !item.lon) return;
+        const ll = [item.lat, item.lon];
+        latlngs.push(ll);
+        let icon;
+        if (item.type === 'land') {
+            icon = L.divIcon({ html: `<div class="drone-land-marker">LND</div>`, iconSize: [34, 22], iconAnchor: [17, 11], className: '' });
+        } else {
+            icon = L.divIcon({ html: `<div class="drone-wp-marker">${wpNum++}</div>`, iconSize: [20, 20], iconAnchor: [10, 10], className: '' });
+        }
+        droneMissionMarkers.push(L.marker(ll, { icon }).addTo(map));
+    });
+    if (latlngs.length >= 2) {
+        droneMissionPolyline = L.polyline(latlngs, { color: '#ff8c00', weight: 1.5, dashArray: '6 4', opacity: 0.8 }).addTo(map);
+    }
+    // Hide immediately if we're on the mission tab
+    if (missionMode) _setDroneMissionVisible(false);
+}
+
+function _setDroneMissionVisible(visible) {
+    droneMissionMarkers.forEach(m => visible ? m.addTo(map) : m.remove());
+    if (droneMissionPolyline) { visible ? droneMissionPolyline.addTo(map) : droneMissionPolyline.remove(); }
+}
+
+function _setEditorMarkersVisible(visible) {
+    currentWPs.forEach(wp => visible ? wp.marker.addTo(map) : wp.marker.remove());
+    if (wpPolyline)  { visible ? wpPolyline.addTo(map)  : wpPolyline.remove(); }
+    if (landMarker)  { visible ? landMarker.addTo(map)  : landMarker.remove(); }
+}
+
+try {
+    const s = localStorage.getItem('gcs_missions');
+    if (s) savedMissions = JSON.parse(s);
+} catch {}
+
+// ── Leaflet map control buttons ──
+const MissionControl = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd() {
+        const wrap = L.DomUtil.create('div', 'mission-ctrl-wrap leaflet-bar');
+        wrap.innerHTML = `
+            <button class="btn-map" id="btnDefineMission" onclick="enterMissionMode()">&#9999; DEFINE MISSION</button>
+            <button class="btn-map" id="btnSavedMissions" onclick="openSavedMissions()">&#128190; SAVED MISSIONS</button>
+            <button class="btn-map" id="btnLoadFromDrone" onclick="getMissionFromDrone()">&#8595; LOAD FROM DRONE</button>`;
+        L.DomEvent.disableClickPropagation(wrap);
+        L.DomEvent.disableScrollPropagation(wrap);
+        return wrap;
+    }
+});
+new MissionControl().addTo(map);
+
+// ── Map click → add waypoint ──
+map.on('click', (e) => {
+    if (!missionMode) return;
+    addWaypoint(e.latlng.lat, e.latlng.lng, 30);
+});
+
+// ── Tab switching ──
+function switchTab(tab) {
+    const isM = tab === 'mission';
+    missionMode = isM;
+    document.body.classList.toggle('mission-active', isM);
+    document.getElementById('telem-content').style.display = isM ? 'none' : '';
+    document.getElementById('mission-content').classList.toggle('visible', isM);
+    document.getElementById('tabTelem').classList.toggle('active', !isM);
+    document.getElementById('tabMission').classList.toggle('active', isM);
+    document.getElementById('btnDefineMission').classList.toggle('active', isM);
+    // Each tab shows only its own mission layer
+    _setDroneMissionVisible(!isM);
+    _setEditorMarkersVisible(isM);
+    if (!isM) {
+        editingIdx = null;
+        _setEditButtons(false);
+    }
+}
+
+function enterMissionMode() {
+    switchTab('mission');
+}
+
+function exitMissionMode() {
+    switchTab('telem');
+}
+
+// ── Waypoint management ──
+function addWaypoint(lat, lon, alt, hold = 0) {
+    const idx    = currentWPs.length;
+    const marker = makeWPMarker(lat, lon, idx + 1);
+    currentWPs.push({ lat, lon, alt: alt || 30, hold, marker });
+    renderWPList();
+    updatePolyline();
+}
+
+function makeWPMarker(lat, lon, num) {
+    const icon = L.divIcon({
+        html: `<div class="wp-marker-label">${num}</div>`,
+        iconSize: [22, 22], iconAnchor: [11, 11], className: ''
+    });
+    return L.marker([lat, lon], { icon, draggable: true })
+        .addTo(map)
+        .on('dragend', (e) => {
+            const i   = num - 1;
+            const ll  = e.target.getLatLng();
+            currentWPs[i].lat = ll.lat;
+            currentWPs[i].lon = ll.lng;
+            updatePolyline();
+            renderWPList();
+        });
+}
+
+function removeWaypoint(idx) {
+    currentWPs[idx].marker.remove();
+    currentWPs.splice(idx, 1);
+    // Renumber remaining markers
+    currentWPs.forEach((wp, i) => {
+        wp.marker.remove();
+        wp.marker = makeWPMarker(wp.lat, wp.lon, i + 1);
+        wp.marker.on('dragend', (e) => {
+            const ll       = e.target.getLatLng();
+            currentWPs[i].lat = ll.lat;
+            currentWPs[i].lon = ll.lng;
+            updatePolyline();
+            renderWPList();
+        });
+    });
+    renderWPList();
+    updatePolyline();
+}
+
+function clearWaypoints() {
+    currentWPs.forEach(wp => wp.marker.remove());
+    currentWPs = [];
+    if (wpPolyline) { wpPolyline.remove(); wpPolyline = null; }
+    if (landMarker) { landMarker.remove(); landMarker = null; }
+    takeoffItem = { alt: 10 };
+    landItem    = { lat: null, lon: null, alt: 5 };
+    editingIdx  = null;
+    _setMissionSpeed(5);
+    _setEditButtons(false);
+    renderWPList();
+}
+
+function updatePolyline() {
+    if (wpPolyline) wpPolyline.remove();
+    if (currentWPs.length < 2) { wpPolyline = null; return; }
+    wpPolyline = L.polyline(
+        currentWPs.map(wp => [wp.lat, wp.lon]),
+        { color: '#00e8cc', weight: 2, dashArray: '6 4', opacity: 0.8 }
+    ).addTo(map);
+}
+
+// ── Land marker management ──
+function updateLandMarker() {
+    if (landItem.lat === null) {
+        if (landMarker) { landMarker.remove(); landMarker = null; }
+        return;
+    }
+    const ll = [landItem.lat, landItem.lon];
+    if (!landMarker) {
+        const icon = L.divIcon({ html: `<div class="land-marker">LND</div>`, iconSize: [34, 24], iconAnchor: [17, 12], className: '' });
+        landMarker = L.marker(ll, { icon, draggable: true }).addTo(map)
+            .on('dragend', e => {
+                const p = e.target.getLatLng();
+                landItem.lat = p.lat;
+                landItem.lon = p.lng;
+                renderWPList();
+            });
+        if (!missionMode) landMarker.remove();
+    } else {
+        landMarker.setLatLng(ll);
+    }
+}
+
+// ── Render waypoint list in sidebar ──
+function renderWPList() {
+    const list  = document.getElementById('wp-list');
+    const empty = document.getElementById('wp-empty');
+    list.querySelectorAll('.wp-item').forEach(el => el.remove());
+
+    // ── TAKEOFF row ──
+    const toRow = document.createElement('div');
+    toRow.className = 'wp-item wp-takeoff';
+    toRow.innerHTML = `
+        <div class="wp-num">TKF</div>
+        <div class="wp-coords">
+            <div class="wp-coord-row">
+                <span class="wp-coord-label">ALT</span>
+                <input class="wp-coord-val" type="number" step="1" value="${takeoffItem.alt}" id="takeoffAltInput">
+            </div>
+        </div>
+        <div style="width:18px;"></div>`;
+    toRow.querySelector('#takeoffAltInput').addEventListener('change', e => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) takeoffItem.alt = v;
+    });
+    list.appendChild(toRow);
+
+    // ── Waypoint rows ──
+    if (currentWPs.length === 0) {
+        empty.style.display = 'block';
+    } else {
+        empty.style.display = 'none';
+        currentWPs.forEach((wp, i) => {
+            const item = document.createElement('div');
+            item.className = 'wp-item';
+            item.innerHTML = `
+                <div class="wp-num">${i + 1}</div>
+                <div class="wp-coords">
+                    <div class="wp-coord-row">
+                        <span class="wp-coord-label">LAT</span>
+                        <input class="wp-coord-val" type="number" step="0.000001" value="${wp.lat.toFixed(7)}" data-idx="${i}" data-field="lat">
+                    </div>
+                    <div class="wp-coord-row">
+                        <span class="wp-coord-label">LON</span>
+                        <input class="wp-coord-val" type="number" step="0.000001" value="${wp.lon.toFixed(7)}" data-idx="${i}" data-field="lon">
+                    </div>
+                    <div class="wp-coord-row">
+                        <span class="wp-coord-label">ALT</span>
+                        <input class="wp-coord-val" type="number" step="1" value="${wp.alt}" data-idx="${i}" data-field="alt">
+                    </div>
+                    <div class="wp-coord-row">
+                        <span class="wp-coord-label">HOLD</span>
+                        <input class="wp-coord-val" type="number" step="1" min="0" value="${wp.hold ?? 0}" data-idx="${i}" data-field="hold">
+                    </div>
+                </div>
+                <button class="wp-del" onclick="removeWaypoint(${i})" title="Remove">&#10005;</button>`;
+            item.querySelectorAll('.wp-coord-val').forEach(inp => {
+                inp.addEventListener('change', e => {
+                    const idx   = parseInt(e.target.dataset.idx);
+                    const field = e.target.dataset.field;
+                    const val   = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    currentWPs[idx][field] = val;
+                    if (field === 'lat' || field === 'lon') {
+                        currentWPs[idx].marker.setLatLng([currentWPs[idx].lat, currentWPs[idx].lon]);
+                        updatePolyline();
+                    }
+                });
+            });
+            list.appendChild(item);
+        });
+    }
+
+    // ── LAND row ──
+    const landLat = landItem.lat !== null ? landItem.lat.toFixed(7) : '';
+    const landLon = landItem.lon !== null ? landItem.lon.toFixed(7) : '';
+    const lndRow = document.createElement('div');
+    lndRow.className = 'wp-item wp-land';
+    lndRow.innerHTML = `
+        <div class="wp-num">LND</div>
+        <div class="wp-coords">
+            <div class="wp-coord-row">
+                <span class="wp-coord-label">LAT</span>
+                <input class="wp-coord-val" type="number" step="0.000001" value="${landLat}" id="landLatInput" placeholder="—">
+            </div>
+            <div class="wp-coord-row">
+                <span class="wp-coord-label">LON</span>
+                <input class="wp-coord-val" type="number" step="0.000001" value="${landLon}" id="landLonInput" placeholder="—">
+            </div>
+            <div class="wp-coord-row">
+                <span class="wp-coord-label">ALT</span>
+                <input class="wp-coord-val" type="number" step="1" value="${landItem.alt}" id="landAltInput">
+            </div>
+        </div>
+        <button class="wp-del" title="Set from drone" onclick="setLandFromDrone()" style="font-size:10px; color:#cc5500;">&#128205;</button>`;
+    lndRow.querySelector('#landLatInput').addEventListener('change', e => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) { landItem.lat = v; updateLandMarker(); }
+    });
+    lndRow.querySelector('#landLonInput').addEventListener('change', e => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) { landItem.lon = v; updateLandMarker(); }
+    });
+    lndRow.querySelector('#landAltInput').addEventListener('change', e => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) landItem.alt = v;
+    });
+    list.appendChild(lndRow);
+}
+
+function setLandFromDrone() {
+    if (drone.lat === null) { alert('No drone position available yet.'); return; }
+    landItem.lat = drone.lat;
+    landItem.lon = drone.lon;
+    updateLandMarker();
+    renderWPList();
+}
+
+// ── Mission button helpers ──
+function _setEditButtons(editing) {
+    document.getElementById('btnSaveMission').style.display   = editing ? 'none'  : '';
+    document.getElementById('btnUpdateMission').style.display = editing ? ''      : 'none';
+    document.getElementById('btnSaveAsNew').style.display     = editing ? ''      : 'none';
+}
+
+function _missionNameTaken(name, excludeIdx = null) {
+    const n = name.trim().toLowerCase();
+    return savedMissions.some((m, i) => i !== excludeIdx && m.name.trim().toLowerCase() === n);
+}
+
+function _persistMissions() {
+    try { localStorage.setItem('gcs_missions', JSON.stringify(savedMissions)); } catch {}
+}
+
+function _getMissionMeta() {
+    return {
+        name: document.getElementById('missionName').value.trim() || 'Unnamed Mission',
+        speed_ms: missionSpeed,
+        mission_items: [
+            { type: 'takeoff', alt: takeoffItem.alt },
+            ...currentWPs.map(wp => ({ type: 'waypoint', lat: wp.lat, lon: wp.lon, alt: wp.alt, hold_time: wp.hold ?? 0 })),
+            { type: 'land', lat: landItem.lat, lon: landItem.lon, alt: landItem.alt },
+        ],
+    };
+}
+
+function _applyMissionMeta(m) {
+    document.getElementById('missionName').value = m.name ?? '';
+    _setMissionSpeed(m.speed_ms ?? 5);
+    // Support new typed format and old {takeoffAlt, waypoints, landingAlt} format
+    if (Array.isArray(m.mission_items)) {
+        _applyMissionItems(m.mission_items);
+    } else if (Array.isArray(m.waypoints)) {
+        // Legacy format migration
+        takeoffItem = { alt: m.takeoffAlt ?? 10 };
+        landItem    = { lat: null, lon: null, alt: m.landingAlt ?? 5 };
+        m.waypoints.forEach(wp => addWaypoint(wp.lat, wp.lon, wp.alt));
+    }
+}
+
+function _setMissionSpeed(v) {
+    if (!v || v <= 0) v = 5;
+    missionSpeed = v;
+    const inp = document.getElementById('missionSpeedInput');
+    if (inp) inp.value = v;
+}
+
+function _updateMissionSpeedTile() {
+    const el = document.getElementById('missionSpeedVal');
+    if (!el) return;
+    el.textContent = (missionSpeedDisplay != null)
+        ? missionSpeedDisplay.toFixed(1) + ' m/s'
+        : '-.- m/s';
+}
+
+function _applyMissionItems(items) {
+    items.forEach(item => {
+        if (item.type === 'takeoff') {
+            takeoffItem = { alt: item.alt ?? 10 };
+        } else if (item.type === 'waypoint') {
+            addWaypoint(item.lat, item.lon, item.alt ?? 30, item.hold_time ?? 0);
+        } else if (item.type === 'land') {
+            landItem = { lat: item.lat ?? null, lon: item.lon ?? null, alt: item.alt ?? 5 };
+            updateLandMarker();
+        }
+    });
+    renderWPList();
+}
+
+// ── Save new mission ──
+function saveMission() {
+    if (currentWPs.length === 0) { alert('Add at least one waypoint first.'); return; }
+    const { name, mission_items } = _getMissionMeta();
+    if (_missionNameTaken(name)) { alert(`A mission named "${name}" already exists. Choose a different name.`); return; }
+    savedMissions.push({ id: Date.now(), name, created: new Date().toISOString(), mission_items });
+    _persistMissions();
+}
+
+// ── Update existing mission ──
+function updateMission() {
+    if (currentWPs.length === 0) { alert('Add at least one waypoint first.'); return; }
+    const { name, mission_items } = _getMissionMeta();
+    if (_missionNameTaken(name, editingIdx)) { alert(`A mission named "${name}" already exists. Choose a different name.`); return; }
+    savedMissions[editingIdx] = { ...savedMissions[editingIdx], name, mission_items };
+    _persistMissions();
+}
+
+// ── Save as new mission ──
+function saveAsNewMission() {
+    if (currentWPs.length === 0) { alert('Add at least one waypoint first.'); return; }
+    const newName = prompt('New mission name:', '');
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) { alert('Mission name cannot be empty.'); return; }
+    if (_missionNameTaken(trimmed)) { alert(`A mission named "${trimmed}" already exists. Choose a different name.`); return; }
+    const { mission_items } = _getMissionMeta();
+    savedMissions.push({ id: Date.now(), name: trimmed, created: new Date().toISOString(), mission_items });
+    _persistMissions();
+    editingIdx = null;
+    _setEditButtons(false);
+    document.getElementById('missionName').value = trimmed;
+}
+
+// ── Saved missions modal ──
+function openSavedMissions() {
+    renderSavedMissionsList();
+    document.getElementById('savedMissionsOverlay').classList.add('open');
+}
+
+function renderSavedMissionsList() {
+    const el = document.getElementById('savedMissionsList');
+    if (savedMissions.length === 0) {
+        el.innerHTML = '<div class="no-missions">NO SAVED MISSIONS</div>';
+        return;
+    }
+    el.innerHTML = savedMissions.map((m, i) => {
+        const date = new Date(m.created).toLocaleString();
+        const items = m.mission_items ?? [];
+        const wps   = items.filter(it => it.type === 'waypoint');
+        const preview = items.map((it, j) => {
+            if (it.type === 'takeoff') return `<span style="color:#00aa55; margin-right:8px;">TKF ${it.alt}m</span>`;
+            if (it.type === 'land')    return `<span style="color:#cc5500; margin-right:8px;">LND ${it.alt}m</span>`;
+            const n = items.slice(0, j).filter(x => x.type === 'waypoint').length + 1;
+            return `<span style="margin-right:8px;">${n}: ${it.lat.toFixed(5)},${it.lon.toFixed(5)},${it.alt}m</span>`;
+        }).join('');
+        return `
+        <div class="saved-mission-item">
+            <div class="saved-mission-header">
+                <div>
+                    <div class="saved-mission-name">${m.name}</div>
+                    <div class="saved-mission-meta">${wps.length} waypoints &nbsp;·&nbsp; ${date}</div>
+                </div>
+                <div class="saved-mission-actions">
+                    <button class="btn" onclick="editMission(${i})">&#9999; EDIT</button>
+                    <button class="btn" onclick="sendMission(${i})" style="background:#0a2a1a; border-color:#00aa55;">&#8593; SEND</button>
+                    <button class="btn danger" onclick="deleteMission(${i})">&#128465;</button>
+                </div>
+            </div>
+            <div style="font-size:9px; color:#2a5a40; font-family:inherit;">${preview}</div>
+        </div>`;
+    }).join('');
+}
+
+function loadMission(idx) {
+    clearWaypoints();
+    const m = savedMissions[idx];
+    _applyMissionMeta(m);
+    if (currentWPs.length > 0) {
+        map.fitBounds(currentWPs.map(wp => [wp.lat, wp.lon]), { padding: [40, 40] });
+    }
+    document.getElementById('savedMissionsOverlay').classList.remove('open');
+    enterMissionMode();
+}
+
+function editMission(idx) {
+    loadMission(idx);       // loads waypoints + name, closes modal, enters mission mode
+    editingIdx = idx;       // set after loadMission so clearWaypoints inside doesn't reset it
+    _setEditButtons(true);
+}
+
+function deleteMission(idx) {
+    savedMissions.splice(idx, 1);
+    try { localStorage.setItem('gcs_missions', JSON.stringify(savedMissions)); } catch {}
+    renderSavedMissionsList();
+}
+
+function sendMission(idx) {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tMission) { alert('Mission upload topic not set in settings.'); return; }
+    const m = savedMissions[idx];
+    const items = m.mission_items ?? [];
+    const land  = items.find(it => it.type === 'land');
+    if (!land || land.lat === null || land.lon === null) { alert('Mission has no landing position set. Edit it first.'); return; }
+    client.publish(cfg.tMission, JSON.stringify({ name: m.name, mission_items: items }), { qos: 1 }, err => {
+        if (err) alert('Publish failed: ' + err.message);
+    });
+}
+
+// ── Camera toggle ──
+let cameraOn = false;
+
+function toggleCamera() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tCameraRes) { alert('Camera Res Base topic not set in settings.'); return; }
+    const base  = cfg.tCameraRes.replace('/res/', '/cmd/');
+    const topic = cameraOn ? base + '/off' : base + '/on';
+    const btn   = document.getElementById('btnCamera');
+    btn.disabled    = true;
+    btn.textContent = '\u23F3 \u2026';
+    client.publish(topic, JSON.stringify({}), { qos: 1 });
+    setTimeout(() => { btn.disabled = false; setCameraUI(cameraOn); }, 10000);
+}
+
+function setCameraUI(on) {
+    cameraOn = on;
+    const btn = document.getElementById('btnCamera');
+    if (!btn) return;
+    btn.disabled = false;
+    if (on) {
+        btn.textContent      = '\u23F9 CAM OFF';
+        btn.style.borderColor = '#ff5555';
+        btn.style.color       = '#ff5555';
+    } else {
+        btn.textContent      = '\u25B6 CAM ON';
+        btn.style.borderColor = '';
+        btn.style.color       = '';
+        const ph = document.getElementById('video-ph-msg');
+        if (ph) ph.textContent = 'Camera OFF';
+    }
+}
+
+// ── Refresh drone mission on map (telemetry tab button) ──
+function refreshDroneMission() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    const cmdTopic = cfg.tMissionGetRes.replace('/res/', '/cmd/');
+    if (!cmdTopic || cmdTopic === cfg.tMissionGetRes) { alert('Get Mission Res topic misconfigured.'); return; }
+    _missionLoadToEditor = false;
+    client.publish(cmdTopic, JSON.stringify({}), { qos: 1 });
+    const btn = document.getElementById('btnRefreshMission');
+    if (btn) {
+        btn.disabled = true; btn.innerHTML = '&#8987; LOADING\u2026';
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '&#8635; REFRESH MISSION'; }, 8000);
+    }
+}
+
+// ── Load mission from drone into editor ──
+function getMissionFromDrone() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    const cmdTopic = cfg.tMissionGetRes.replace('/res/', '/cmd/');
+    if (!cmdTopic || cmdTopic === cfg.tMissionGetRes) {
+        alert('Get Mission Res topic is not configured correctly in settings\n(expected format: /drone_xxx/res/mission/get).');
+        return;
+    }
+    ['btnLoadFromDrone', 'btnLoadFromDroneTab'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) { b.textContent = '\u23F3 LOADING\u2026'; b.disabled = true; }
+    });
+    setTimeout(() => {
+        ['btnLoadFromDrone', 'btnLoadFromDroneTab'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) { b.innerHTML = id === 'btnLoadFromDroneTab' ? '&#8595; FROM DRONE' : '&#8595; LOAD FROM DRONE'; b.disabled = false; }
+        });
+    }, 10000);
+    _missionLoadToEditor = true;
+    client.publish(cmdTopic, JSON.stringify({}), { qos: 1 });
+}
+
+// ── Start mission: upload → arm → start ──
+function toggleArm() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tMission) { alert('Mission topic not set in settings.'); return; }
+    const ns = cfg.tMission.replace(/\/cmd\/.*$/, '');
+    const tile = document.getElementById('armedTile');
+    if (drone.armed) {
+        if (!confirm('Force-disarm the drone?')) return;
+        if (tile) tile.style.opacity = '0.5';
+        client.publish(ns + '/cmd/disarm', JSON.stringify({}), { qos: 1 });
+    } else {
+        if (!confirm('Arm the drone in GUIDED mode?')) return;
+        if (tile) tile.style.opacity = '0.5';
+        client.publish(ns + '/cmd/arm', JSON.stringify({}), { qos: 1 });
+    }
+}
+
+function setGuidedMode() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tMission) { alert('Mission topic not set in settings.'); return; }
+    const ns = cfg.tMission.replace(/\/cmd\/.*$/, '');
+    const tile = document.getElementById('modeTile');
+    if (tile) tile.style.opacity = '0.5';
+    client.publish(ns + '/cmd/set_mode/guided', JSON.stringify({}), { qos: 1 });
+}
+
+function _onSetGuidedResponse(d) {
+    const tile = document.getElementById('modeTile');
+    if (tile) tile.style.opacity = '1';
+    if (!d.success) alert('Failed to set GUIDED mode:\n' + (d.message || 'Unknown error'));
+}
+
+function _setStartBtn(label, disabled) {
+    const btn = document.getElementById('btnStartMission');
+    if (!btn) return;
+    btn.innerHTML = label;
+    btn.disabled  = disabled;
+    btn.style.opacity = disabled ? '0.6' : '1';
+}
+
+function startMissionSequence() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tMission) { alert('Mission topic not set in settings.'); return; }
+    if (!confirm('This will ARM the drone and start the mission loaded on the FCU.\n\nAre you sure?')) return;
+    _armDrone();
+}
+
+function _armDrone() {
+    const ns = cfg.tMission.replace(/\/cmd\/.*$/, '');
+    _startMissionState = 'arming';
+    _setStartBtn('&#9889; Arming…', true);
+    client.publish(ns + '/cmd/arm', JSON.stringify({}), { qos: 1 });
+}
+
+function _onArmResponse(d) {
+    const tile = document.getElementById('armedTile');
+    if (tile) tile.style.opacity = '1';
+    if (_startMissionState !== 'arming') {
+        // standalone arm from tile click
+        if (!d.success) alert('Arming failed:\n' + (d.message || 'Unknown error'));
+        return;
+    }
+    if (!d.success) {
+        _startMissionState = null;
+        _setStartBtn('&#9654;&#9654; START MISSION', false);
+        alert('Arming failed:\n' + (d.message || 'Unknown error'));
+        return;
+    }
+    const ns = cfg.tMission.replace(/\/cmd\/.*$/, '');
+    _startMissionState = 'starting';
+    _setStartBtn('&#9654; Starting mission…', true);
+    client.publish(ns + '/cmd/start_mission', JSON.stringify({}), { qos: 1 });
+}
+
+function _onStartMissionResponse(d) {
+    if (_startMissionState !== 'starting') return;
+    _startMissionState = null;
+    if (d.success) {
+        _setStartBtn('&#9989; Mission started!', false);
+        setTimeout(() => _setStartBtn('&#9654;&#9654; START MISSION', false), 3000);
+    } else {
+        _setStartBtn('&#9654;&#9654; START MISSION', false);
+        alert('Mission start failed:\n' + (d.message || 'Unknown error'));
+    }
+}
+
+// ── Send currently edited mission directly ──
+function sendCurrentMission() {
+    if (!client || !client.connected) { alert('Not connected to MQTT broker.'); return; }
+    if (!cfg.tMission) { alert('Mission upload topic not set in settings.'); return; }
+    if (currentWPs.length === 0) { alert('No waypoints defined.'); return; }
+    if (landItem.lat === null) { alert('Set a landing position first (📍 button on the LAND row).'); return; }
+    const { name, mission_items } = _getMissionMeta();
+    client.publish(cfg.tMission, JSON.stringify({ name, mission_items }), { qos: 1 }, err => {
+        if (err) alert('Publish failed: ' + err.message);
+    });
+}
+
+function loadWaypointsFromDrone(missionItems, speedMs) {
+    ['btnLoadFromDrone', 'btnLoadFromDroneTab'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) { b.innerHTML = id === 'btnLoadFromDroneTab' ? '&#8595; FROM DRONE' : '&#8595; LOAD FROM DRONE'; b.disabled = false; }
+    });
+    if (!missionItems || missionItems.length === 0) return;
+    clearWaypoints();
+    document.getElementById('missionName').value = 'Mission from Drone';
+    _setMissionSpeed(speedMs ?? 5);
+    _applyMissionItems(missionItems);
+    if (currentWPs.length > 0) {
+        map.fitBounds(currentWPs.map(wp => [wp.lat, wp.lon]), { padding: [40, 40] });
+    }
+    enterMissionMode();
+}
+
+// mission speed input
+document.getElementById('missionSpeedInput').addEventListener('change', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v > 0) missionSpeed = v;
+});
+
+// close saved missions overlay on backdrop
+document.getElementById('savedMissionsOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('savedMissionsOverlay'))
+        document.getElementById('savedMissionsOverlay').classList.remove('open');
+});
+</script>
+</body>
+</html>
+gcs.html
+Mostrando gcs.html.
