@@ -1,5 +1,21 @@
-import { Box, Button, Grid, HStack, Stack, Text } from "@chakra-ui/react";
-import { AttitudeIndicator } from "./AttitudeIndicator";
+import {
+  Badge,
+  Box,
+  Button,
+  HStack,
+  Icon,
+  SimpleGrid,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import {
+  FaBatteryEmpty,
+  FaBatteryFull,
+  FaBatteryHalf,
+  FaMapMarkerAlt,
+  FaPlane,
+  FaSatelliteDish,
+} from "react-icons/fa";
 import { VideoFeed } from "./VideoFeed";
 import type { DroneTelemetry } from "../../hooks/use-drone-socket";
 
@@ -17,9 +33,43 @@ interface Props {
   startMissionDisabled: boolean;
 }
 
-function fmt(v: number | null | undefined, unit = "", d = 1) {
-  if (v == null || Number.isNaN(v)) return "—";
-  return v.toFixed(d) + unit;
+const fmtCoord = (v: number | null | undefined) =>
+  v !== undefined && v !== null ? v.toFixed(6) : "--";
+const fmtAlt = (v: number | null | undefined) =>
+  v !== undefined && v !== null ? `${v.toFixed(1)} m` : "--";
+const fmtDeg = (v: number | null | undefined) =>
+  v !== undefined && v !== null ? `${v.toFixed(1)}°` : "--";
+
+function Card({
+  label,
+  value,
+  icon,
+  color = "accent.500",
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  color?: string;
+}) {
+  return (
+    <Box bg="gray.50" p={3} rounded="xl" textAlign="center">
+      <HStack justify="center" mb={1}>
+        <Icon as={icon} color={color} boxSize={3} />
+        <Text
+          fontSize="9px"
+          fontWeight="black"
+          color="gray.500"
+          letterSpacing="widest"
+          textTransform="uppercase"
+        >
+          {label}
+        </Text>
+      </HStack>
+      <Text fontSize="md" fontWeight="bold" fontFamily="mono">
+        {value}
+      </Text>
+    </Box>
+  );
 }
 
 export function TelemetryPanel({
@@ -36,127 +86,151 @@ export function TelemetryPanel({
   startMissionDisabled,
 }: Props) {
   const { attitude, position, battery, state } = telemetry;
-
-  const tiles: Array<{ label: string; value: string; color?: string }> = [
-    {
-      label: "Armed",
-      value: state?.armed ? "ARMED" : "DISARMED",
-      color: state?.armed ? "#ff5555" : "#00e8cc",
-    },
-    { label: "Mode", value: state?.flight_mode ?? "—" },
-    { label: "GPS", value: state?.gps_lock ? `LOCK ${state?.gps_level ?? ""}` : "NO LOCK" },
-    { label: "Alt MSL", value: fmt(position?.alt_msl, " m", 0) },
-    { label: "Alt Rel", value: fmt(position?.alt_rel, " m", 0) },
-    {
-      label: "Speed",
-      value: state?.mission_speed_ms != null ? state.mission_speed_ms.toFixed(1) + " m/s" : "—",
-    },
-  ];
+  const pct = battery?.["remaining_%"] ?? null;
+  const batteryIcon =
+    pct === null ? FaBatteryEmpty : pct > 50 ? FaBatteryFull : pct > 20 ? FaBatteryHalf : FaBatteryEmpty;
+  const batteryColor =
+    pct === null ? "gray.400" : pct > 50 ? "green.400" : pct > 20 ? "orange.400" : "red.400";
 
   return (
     <Stack spacing={3} p={3}>
-      <Box bg="#0a0e14" border="1px solid" borderColor="#1f2733" rounded="md" p={3}>
-        <HStack justify="center">
-          <AttitudeIndicator
-            roll={attitude?.roll ?? 0}
-            pitch={attitude?.pitch ?? 0}
-            yaw={attitude?.yaw ?? 0}
-          />
-        </HStack>
-      </Box>
+      <HStack justify="space-between">
+        <Badge
+          colorScheme={state?.armed ? "red" : "green"}
+          variant="solid"
+          rounded="full"
+          px={2}
+        >
+          {state?.armed === undefined ? "--" : state.armed ? "ARMED" : "DISARMED"}
+        </Badge>
+        <Badge variant="subtle" colorScheme="teal" rounded="full" px={2}>
+          {state?.mode ?? "—"}
+        </Badge>
+      </HStack>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={2}>
-        {tiles.map((t) => (
-          <Box
-            key={t.label}
-            bg="#0a0e14"
-            border="1px solid"
-            borderColor="#1f2733"
-            rounded="md"
-            p={2}
-          >
-            <Text fontSize="9px" color="gray.500" letterSpacing="wider">
-              {t.label.toUpperCase()}
-            </Text>
-            <Text
-              fontFamily="mono"
-              fontSize="sm"
-              fontWeight="bold"
-              color={t.color ?? "accent.500"}
-            >
-              {t.value}
-            </Text>
-          </Box>
-        ))}
-      </Grid>
+      <SimpleGrid columns={3} spacing={2}>
+        <Card
+          label="Batería"
+          value={pct !== null ? `${Math.round(pct)}%` : "--"}
+          icon={batteryIcon}
+          color={batteryColor}
+        />
+        <Card
+          label="Alt REL"
+          value={fmtAlt(position?.alt_rel_m)}
+          icon={FaMapMarkerAlt}
+        />
+        <Card
+          label="GPS"
+          value={state?.gps_lock ? `Fix ${state.gps_lock_level ?? ""}` : "Sin fix"}
+          icon={FaSatelliteDish}
+          color={state?.gps_lock ? "green.400" : "red.400"}
+        />
+        <Card
+          label="Lat"
+          value={fmtCoord(position?.lat_deg)}
+          icon={FaSatelliteDish}
+        />
+        <Card
+          label="Lon"
+          value={fmtCoord(position?.lon_deg)}
+          icon={FaSatelliteDish}
+        />
+        <Card
+          label="Alt MSL"
+          value={fmtAlt(position?.alt_msl_m)}
+          icon={FaMapMarkerAlt}
+        />
+        <Card
+          label="Roll"
+          value={fmtDeg(attitude?.roll_deg)}
+          icon={FaPlane}
+          color="blue.400"
+        />
+        <Card
+          label="Pitch"
+          value={fmtDeg(attitude?.pitch_deg)}
+          icon={FaPlane}
+          color="accent.500"
+        />
+        <Card
+          label="Yaw"
+          value={fmtDeg(attitude?.yaw_deg)}
+          icon={FaPlane}
+          color="purple.400"
+        />
+      </SimpleGrid>
 
-      <Box bg="#0a0e14" border="1px solid" borderColor="#1f2733" rounded="md" p={2}>
-        <HStack justify="space-between">
-          <Text fontSize="9px" color="gray.500">
-            BATTERY
+      <Box bg="gray.50" rounded="xl" p={3}>
+        <HStack justify="space-between" mb={1}>
+          <Text fontSize="9px" color="gray.400" fontWeight="black" letterSpacing="widest">
+            BATERÍA
           </Text>
-          <Text fontFamily="mono" fontSize="xs">
-            {fmt(battery?.voltage, " V", 1)} · {fmt(battery?.current, " A", 1)}
+          <Text fontFamily="mono" fontSize="xs" color="gray.700">
+            {battery ? `${battery.voltage_v.toFixed(1)} V · ${battery.current_a.toFixed(1)} A` : "—"}
           </Text>
         </HStack>
-        <Box h="8px" bg="#1f2733" rounded="full" mt={2} overflow="hidden">
+        <Box h="6px" bg="gray.200" rounded="full" overflow="hidden">
           <Box
             h="100%"
-            w={`${Math.max(0, Math.min(100, battery?.percentage ?? 0))}%`}
+            w={`${Math.max(0, Math.min(100, pct ?? 0))}%`}
             bg={
-              (battery?.percentage ?? 0) < 20
-                ? "#ff5555"
-                : (battery?.percentage ?? 0) < 40
-                  ? "#ffcc00"
-                  : "#00e8cc"
+              pct === null
+                ? "gray.500"
+                : pct < 20
+                  ? "red.400"
+                  : pct < 40
+                    ? "orange.400"
+                    : "accent.500"
             }
           />
         </Box>
-        <Text fontFamily="mono" fontSize="xs" mt={1}>
-          {fmt(battery?.percentage, "%", 0)}
-        </Text>
-      </Box>
-
-      <Box bg="#0a0e14" border="1px solid" borderColor="#1f2733" rounded="md" p={2}>
-        <Text fontSize="9px" color="gray.500" mb={1}>
-          POSITION
-        </Text>
-        <Text fontFamily="mono" fontSize="xs">
-          LAT {position?.lat != null ? position.lat.toFixed(6) : "—"}
-        </Text>
-        <Text fontFamily="mono" fontSize="xs">
-          LON {position?.lon != null ? position.lon.toFixed(6) : "—"}
-        </Text>
       </Box>
 
       <VideoFeed url={videoUrl} enabled={cameraOn} />
 
       <Stack spacing={2}>
-        <Button size="sm" onClick={onToggleCamera} isDisabled={cameraBusy}>
-          {cameraOn ? "⏹ CAM OFF" : "▶ CAM ON"}
-        </Button>
-        <Button size="sm" onClick={onSetGuided} variant="outline" borderColor="#1f2733">
-          SET GUIDED
-        </Button>
         <Button
           size="sm"
-          onClick={onToggleArm}
-          bg={state?.armed ? "#ff5555" : "accent.500"}
-          color="#0a0e14"
-          _hover={{ opacity: 0.85 }}
+          colorScheme={cameraOn ? "red" : "teal"}
+          onClick={onToggleCamera}
+          isDisabled={cameraBusy}
+          rounded="lg"
         >
-          {state?.armed ? "DISARM" : "ARM"}
-        </Button>
-        <Button size="sm" onClick={onRefreshMission} variant="outline" borderColor="#1f2733">
-          ↻ REFRESH MISSION
+          {cameraOn ? "Apagar cámara" : "Encender cámara"}
         </Button>
         <Button
           size="sm"
+          variant="outline"
+          borderColor="gray.200"
+          onClick={onSetGuided}
+          rounded="lg"
+        >
+          Set GUIDED
+        </Button>
+        <Button
+          size="sm"
+          colorScheme={state?.armed ? "red" : "green"}
+          onClick={onToggleArm}
+          rounded="lg"
+        >
+          {state?.armed ? "Disarm" : "Armar"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          borderColor="gray.200"
+          onClick={onRefreshMission}
+          rounded="lg"
+        >
+          ↻ Refrescar misión
+        </Button>
+        <Button
+          size="sm"
+          colorScheme="orange"
           onClick={onStartMission}
           isDisabled={startMissionDisabled}
-          bg="#00aa55"
-          color="#0a0e14"
-          _hover={{ opacity: 0.85 }}
+          rounded="lg"
         >
           {startMissionLabel}
         </Button>

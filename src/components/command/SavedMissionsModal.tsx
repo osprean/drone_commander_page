@@ -40,13 +40,13 @@ export function SavedMissionsModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent bg="#10151d" border="1px solid" borderColor="#1f2733">
-        <ModalHeader>Missions</ModalHeader>
+      <ModalContent bg="white">
+        <ModalHeader color="gray.800">Misiones guardadas</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           {missions.length === 0 && (
             <Text color="gray.500" textAlign="center" py={8}>
-              NO SAVED MISSIONS
+              No hay misiones guardadas
             </Text>
           )}
           <Stack spacing={3}>
@@ -56,34 +56,35 @@ export function SavedMissionsModal({
               return (
                 <Box
                   key={m.id}
-                  bg="#0a0e14"
+                  bg="gray.50"
                   border="1px solid"
-                  borderColor="#1f2733"
+                  borderColor="gray.200"
                   rounded="md"
                   p={3}
                 >
                   <HStack justify="space-between" mb={1}>
                     <Box>
-                      <Text fontWeight="bold">{m.name}</Text>
+                      <Text fontWeight="bold" color="gray.800">
+                        {m.name}
+                      </Text>
                       <Text fontSize="xs" color="gray.500">
                         {wpCount} waypoints · {new Date(m.created).toLocaleString()}
                       </Text>
                     </Box>
                     <HStack>
-                      <Button size="xs" onClick={() => onEdit(i)}>
-                        ✏ EDIT
+                      <Button size="xs" variant="outline" borderColor="gray.200" onClick={() => onEdit(i)}>
+                        Editar
                       </Button>
-                      <Button size="xs" bg="#00aa55" color="#0a0e14" onClick={() => onSend(i)}>
-                        ↑ SEND
+                      <Button size="xs" colorScheme="green" onClick={() => onSend(i)}>
+                        Enviar
                       </Button>
                       <Button
                         size="xs"
                         variant="outline"
-                        borderColor="#cc5500"
-                        color="#cc5500"
+                        colorScheme="red"
                         onClick={() => onDelete(i)}
                       >
-                        🗑
+                        Borrar
                       </Button>
                     </HStack>
                   </HStack>

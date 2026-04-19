@@ -31,17 +31,21 @@ interface Props {
   onLoadFromDrone: () => void;
 }
 
+const inputStyle = {
+  bg: "white",
+  borderColor: "gray.200",
+} as const;
+
 export function MissionEditor(p: Props) {
   return (
     <Stack spacing={3} p={3} h="100%" overflowY="auto">
       <HStack>
         <Input
           size="sm"
-          placeholder="Mission name"
+          placeholder="Nombre de la misión"
           value={p.missionName}
           onChange={(e) => p.setMissionName(e.target.value)}
-          bg="#0a0e14"
-          borderColor="#1f2733"
+          {...inputStyle}
         />
         <Input
           size="sm"
@@ -49,46 +53,44 @@ export function MissionEditor(p: Props) {
           type="number"
           value={p.missionSpeed}
           onChange={(e) => p.setMissionSpeed(parseFloat(e.target.value) || 5)}
-          bg="#0a0e14"
-          borderColor="#1f2733"
+          {...inputStyle}
         />
       </HStack>
 
       <HStack>
-        <Button size="xs" onClick={p.onOpenSaved}>
-          Saved
+        <Button size="xs" variant="outline" borderColor="gray.200" onClick={p.onOpenSaved}>
+          Guardadas
         </Button>
-        <Button size="xs" onClick={p.onLoadFromDrone}>
-          ↓ From Drone
+        <Button size="xs" variant="outline" borderColor="gray.200" onClick={p.onLoadFromDrone}>
+          ↓ Desde dron
         </Button>
-        <Button size="xs" onClick={p.onClear}>
-          Clear
+        <Button size="xs" variant="outline" borderColor="gray.200" onClick={p.onClear}>
+          Limpiar
         </Button>
       </HStack>
 
       <Stack spacing={1}>
         <Box
-          bg="#0a1a10"
+          bg="green.50"
           border="1px solid"
-          borderColor="#00aa55"
+          borderColor="green.300"
           rounded="md"
           p={2}
           fontFamily="mono"
           fontSize="xs"
         >
           <HStack>
-            <Text w="30px" color="#00aa55" fontWeight="bold">
+            <Text w="30px" color="green.600" fontWeight="bold">
               TKF
             </Text>
-            <Text color="gray.400">ALT</Text>
+            <Text color="gray.500">ALT</Text>
             <Input
               size="xs"
               w="80px"
               type="number"
               value={p.takeoffAlt}
               onChange={(e) => p.setTakeoffAlt(parseFloat(e.target.value) || 10)}
-              bg="#0a0e14"
-              borderColor="#1f2733"
+              {...inputStyle}
             />
           </HStack>
         </Box>
@@ -102,16 +104,16 @@ export function MissionEditor(p: Props) {
         {p.wps.map((wp, i) => (
           <Box
             key={i}
-            bg="#0a0e14"
+            bg="white"
             border="1px solid"
-            borderColor="#1f2733"
+            borderColor="gray.200"
             rounded="md"
             p={2}
           >
             <HStack align="start">
               <Text
                 w="30px"
-                color="accent.500"
+                color="teal.500"
                 fontWeight="bold"
                 fontFamily="mono"
                 fontSize="sm"
@@ -120,7 +122,7 @@ export function MissionEditor(p: Props) {
               </Text>
               <Stack spacing={1} flex={1} fontSize="xs" fontFamily="mono">
                 <HStack>
-                  <Text w="40px" color="gray.400">
+                  <Text w="40px" color="gray.500">
                     LAT
                   </Text>
                   <Input
@@ -128,15 +130,12 @@ export function MissionEditor(p: Props) {
                     type="number"
                     step="0.000001"
                     value={wp.lat}
-                    onChange={(e) =>
-                      p.updateWp(i, "lat", parseFloat(e.target.value) || 0)
-                    }
-                    bg="#10151d"
-                    borderColor="#1f2733"
+                    onChange={(e) => p.updateWp(i, "lat", parseFloat(e.target.value) || 0)}
+                    {...inputStyle}
                   />
                 </HStack>
                 <HStack>
-                  <Text w="40px" color="gray.400">
+                  <Text w="40px" color="gray.500">
                     LON
                   </Text>
                   <Input
@@ -144,41 +143,32 @@ export function MissionEditor(p: Props) {
                     type="number"
                     step="0.000001"
                     value={wp.lon}
-                    onChange={(e) =>
-                      p.updateWp(i, "lon", parseFloat(e.target.value) || 0)
-                    }
-                    bg="#10151d"
-                    borderColor="#1f2733"
+                    onChange={(e) => p.updateWp(i, "lon", parseFloat(e.target.value) || 0)}
+                    {...inputStyle}
                   />
                 </HStack>
                 <HStack>
-                  <Text w="40px" color="gray.400">
+                  <Text w="40px" color="gray.500">
                     ALT
                   </Text>
                   <Input
                     size="xs"
                     type="number"
                     value={wp.alt}
-                    onChange={(e) =>
-                      p.updateWp(i, "alt", parseFloat(e.target.value) || 0)
-                    }
-                    bg="#10151d"
-                    borderColor="#1f2733"
+                    onChange={(e) => p.updateWp(i, "alt", parseFloat(e.target.value) || 0)}
+                    {...inputStyle}
                   />
                 </HStack>
                 <HStack>
-                  <Text w="40px" color="gray.400">
+                  <Text w="40px" color="gray.500">
                     HOLD
                   </Text>
                   <Input
                     size="xs"
                     type="number"
                     value={wp.hold ?? 0}
-                    onChange={(e) =>
-                      p.updateWp(i, "hold", parseFloat(e.target.value) || 0)
-                    }
-                    bg="#10151d"
-                    borderColor="#1f2733"
+                    onChange={(e) => p.updateWp(i, "hold", parseFloat(e.target.value) || 0)}
+                    {...inputStyle}
                   />
                 </HStack>
               </Stack>
@@ -188,27 +178,28 @@ export function MissionEditor(p: Props) {
                 icon={<DeleteIcon />}
                 onClick={() => p.removeWp(i)}
                 variant="ghost"
+                colorScheme="red"
               />
             </HStack>
           </Box>
         ))}
 
         <Box
-          bg="#1a0a05"
+          bg="orange.50"
           border="1px solid"
-          borderColor="#cc5500"
+          borderColor="orange.300"
           rounded="md"
           p={2}
           fontFamily="mono"
           fontSize="xs"
         >
           <HStack align="start">
-            <Text w="30px" color="#cc5500" fontWeight="bold">
+            <Text w="30px" color="orange.600" fontWeight="bold">
               LND
             </Text>
             <Stack spacing={1} flex={1}>
               <HStack>
-                <Text w="40px" color="gray.400">
+                <Text w="40px" color="gray.500">
                   LAT
                 </Text>
                 <Input
@@ -217,15 +208,12 @@ export function MissionEditor(p: Props) {
                   step="0.000001"
                   value={p.land.lat ?? ""}
                   placeholder="—"
-                  onChange={(e) =>
-                    p.setLandField("lat", parseFloat(e.target.value) || 0)
-                  }
-                  bg="#10151d"
-                  borderColor="#1f2733"
+                  onChange={(e) => p.setLandField("lat", parseFloat(e.target.value) || 0)}
+                  {...inputStyle}
                 />
               </HStack>
               <HStack>
-                <Text w="40px" color="gray.400">
+                <Text w="40px" color="gray.500">
                   LON
                 </Text>
                 <Input
@@ -234,30 +222,24 @@ export function MissionEditor(p: Props) {
                   step="0.000001"
                   value={p.land.lon ?? ""}
                   placeholder="—"
-                  onChange={(e) =>
-                    p.setLandField("lon", parseFloat(e.target.value) || 0)
-                  }
-                  bg="#10151d"
-                  borderColor="#1f2733"
+                  onChange={(e) => p.setLandField("lon", parseFloat(e.target.value) || 0)}
+                  {...inputStyle}
                 />
               </HStack>
               <HStack>
-                <Text w="40px" color="gray.400">
+                <Text w="40px" color="gray.500">
                   ALT
                 </Text>
                 <Input
                   size="xs"
                   type="number"
                   value={p.land.alt}
-                  onChange={(e) =>
-                    p.setLandField("alt", parseFloat(e.target.value) || 5)
-                  }
-                  bg="#10151d"
-                  borderColor="#1f2733"
+                  onChange={(e) => p.setLandField("alt", parseFloat(e.target.value) || 5)}
+                  {...inputStyle}
                 />
               </HStack>
             </Stack>
-            <Button size="xs" onClick={p.setLandFromDrone} title="Set from drone">
+            <Button size="xs" onClick={p.setLandFromDrone} title="Posición desde dron">
               📍
             </Button>
           </HStack>
@@ -266,22 +248,27 @@ export function MissionEditor(p: Props) {
 
       <Stack spacing={2}>
         {!p.editing && (
-          <Button size="sm" onClick={p.onSave} bg="accent.500" color="#0a0e14">
-            💾 SAVE MISSION
+          <Button size="sm" onClick={p.onSave} colorScheme="teal">
+            Guardar misión
           </Button>
         )}
         {p.editing && (
           <>
-            <Button size="sm" onClick={p.onUpdate} bg="accent.500" color="#0a0e14">
-              ✏ UPDATE
+            <Button size="sm" onClick={p.onUpdate} colorScheme="teal">
+              Actualizar
             </Button>
-            <Button size="sm" onClick={p.onSaveAs} variant="outline" borderColor="#1f2733">
-              SAVE AS NEW
+            <Button
+              size="sm"
+              onClick={p.onSaveAs}
+              variant="outline"
+              borderColor="gray.200"
+            >
+              Guardar como nueva
             </Button>
           </>
         )}
-        <Button size="sm" onClick={p.onSend} bg="#00aa55" color="#0a0e14">
-          ↑ SEND TO DRONE
+        <Button size="sm" onClick={p.onSend} colorScheme="green">
+          ↑ Enviar al dron
         </Button>
       </Stack>
     </Stack>

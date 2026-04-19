@@ -140,9 +140,9 @@ export function VideoFeed({ url, enabled }: Props) {
   return (
     <Box
       position="relative"
-      bg="#000"
+      bg="black"
       border="1px solid"
-      borderColor="#1f2733"
+      borderColor="gray.200"
       rounded="md"
       overflow="hidden"
       minH="160px"

@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { apiBaseUrl } from "../api/client";
 import type {
   AttitudePayload,
   BatteryPayload,
   CommandResponse,
-  OnlinePayload,
   PositionPayload,
   StatePayload,
 } from "../api/types";
@@ -36,6 +34,11 @@ export interface UseDroneSocket {
   onResponse: (cb: (r: CommandResponse) => void) => () => void;
 }
 
+function getJwt(): string | undefined {
+  const m = document.cookie.match(/(?:^|;\s*)access_token_cookie=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : undefined;
+}
+
 export function useDroneSocket(droneId: number | undefined): UseDroneSocket {
   const [connected, setConnected] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -45,12 +48,16 @@ export function useDroneSocket(droneId: number | undefined): UseDroneSocket {
 
   useEffect(() => {
     if (!droneId) return;
-    const base = apiBaseUrl();
-    const s = io(base, {
+    const WS_URL = import.meta.env.DEV
+      ? window.location.origin
+      : (import.meta.env.VITE_WS_URL as string) || window.location.origin;
+
+    const token = getJwt();
+    const s = io(WS_URL, {
       transports: ["websocket"],
       withCredentials: true,
-      path: "/socket.io",
-      reconnection: true,
+      auth: token ? { token } : undefined,
+      query: token ? { token } : undefined,
     });
     socketRef.current = s;
 
@@ -62,31 +69,47 @@ export function useDroneSocket(droneId: number | undefined): UseDroneSocket {
       setConnected(false);
       setSubscribed(false);
     });
-    s.on("drone:subscribed", (d: { drone_id: number; online: boolean }) => {
-      if (d.drone_id === droneId) {
-        setSubscribed(true);
-        setTelemetry((t) => ({ ...t, online: d.online }));
-      }
+    s.on("drone:subscribed", (d: { drone_id?: number; online: boolean }) => {
+      setSubscribed(true);
+      setTelemetry((t) => ({ ...t, online: d.online }));
     });
-    s.on("drone:attitude", (p: AttitudePayload) =>
-      setTelemetry((t) => ({ ...t, attitude: p })),
+    s.on(
+      "drone:attitude",
+      (msg: { drone_id: string; data: AttitudePayload }) =>
+        setTelemetry((t) => ({ ...t, attitude: msg.data })),
     );
-    s.on("drone:position", (p: PositionPayload) =>
-      setTelemetry((t) => ({ ...t, position: p })),
+    s.on(
+      "drone:position",
+      (msg: { drone_id: string; data: PositionPayload }) =>
+        setTelemetry((t) => ({ ...t, position: msg.data })),
     );
-    s.on("drone:battery_status", (p: BatteryPayload) =>
-      setTelemetry((t) => ({ ...t, battery: p })),
+    s.on(
+      "drone:battery_status",
+      (msg: { drone_id: string; data: BatteryPayload }) =>
+        setTelemetry((t) => ({ ...t, battery: msg.data })),
     );
-    s.on("drone:state", (p: StatePayload) =>
-      setTelemetry((t) => ({ ...t, state: p })),
+    s.on(
+      "drone:state",
+      (msg: { drone_id: string; data: StatePayload }) =>
+        setTelemetry((t) => ({ ...t, state: msg.data })),
     );
-    s.on("drone:online", (p: OnlinePayload) =>
-      setTelemetry((t) => ({ ...t, online: p.online })),
+    s.on("drone:online", (msg: { drone_id: string; online: boolean }) =>
+      setTelemetry((t) => ({ ...t, online: msg.online })),
     );
-    s.on("drone:response", (p: CommandResponse) => {
-      setTelemetry((t) => ({ ...t, lastResponse: p }));
-      respListeners.current.forEach((cb) => cb(p));
-    });
+    s.on(
+      "drone:response",
+      (msg: { drone_id: string; action: string; data: any }) => {
+        const payload = msg.data ?? {};
+        const r: CommandResponse = {
+          action: msg.action,
+          success: !!payload.success,
+          message: payload.message,
+          data: payload.data ?? payload,
+        };
+        setTelemetry((t) => ({ ...t, lastResponse: r }));
+        respListeners.current.forEach((cb) => cb(r));
+      },
+    );
 
     return () => {
       try {

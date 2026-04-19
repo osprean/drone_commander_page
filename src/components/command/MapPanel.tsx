@@ -96,7 +96,7 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
     }
     if (!droneMarkerRef.current) {
       const icon = L.divIcon({
-        html: `<div style="width:20px;height:20px;background:#00e8cc;border:2px solid #0a0e14;border-radius:50%;box-shadow:0 0 6px #00e8cc"></div>`,
+        html: `<div style="width:20px;height:20px;background:#5AAFBA;border:2px solid #ffffff;border-radius:50%;box-shadow:0 0 6px #5AAFBA"></div>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10],
         className: "",
@@ -125,7 +125,7 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
 
     editableWps.forEach((wp, i) => {
       const icon = L.divIcon({
-        html: `<div style="width:22px;height:22px;background:#00e8cc;color:#0a0e14;border-radius:50%;border:2px solid #0a0e14;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;font-family:monospace">${i + 1}</div>`,
+        html: `<div style="width:22px;height:22px;background:#5AAFBA;color:#ffffff;border-radius:50%;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;font-family:monospace">${i + 1}</div>`,
         iconSize: [22, 22],
         iconAnchor: [11, 11],
         className: "",
@@ -141,14 +141,14 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
     if (editableWps.length >= 2) {
       editPolyRef.current = L.polyline(
         editableWps.map((w) => [w.lat, w.lon]),
-        { color: "#00e8cc", weight: 2, dashArray: "6 4", opacity: 0.8 },
+        { color: "#5AAFBA", weight: 2, dashArray: "6 4", opacity: 0.8 },
       ).addTo(map);
     }
 
     if (land.lat != null && land.lon != null) {
       if (!landMarkerRef.current) {
         const icon = L.divIcon({
-          html: `<div style="padding:2px 6px;background:#cc5500;color:#0a0e14;border:1px solid #0a0e14;border-radius:3px;font-size:10px;font-weight:bold;font-family:monospace">LND</div>`,
+          html: `<div style="padding:2px 6px;background:#cc5500;color:#ffffff;border:1px solid #ffffff;border-radius:3px;font-size:10px;font-weight:bold;font-family:monospace">LND</div>`,
           iconSize: [34, 20],
           iconAnchor: [17, 10],
           className: "",
@@ -182,7 +182,7 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
         wpIdx += 1;
         coords.push([it.lat, it.lon]);
         const icon = L.divIcon({
-          html: `<div style="width:20px;height:20px;background:#ff9900;color:#0a0e14;border-radius:50%;border:2px solid #0a0e14;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;font-family:monospace">${wpIdx}</div>`,
+          html: `<div style="width:20px;height:20px;background:#ff9900;color:#ffffff;border-radius:50%;border:2px solid #ffffff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;font-family:monospace">${wpIdx}</div>`,
           iconSize: [20, 20],
           iconAnchor: [10, 10],
           className: "",
@@ -191,7 +191,7 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
       } else if (it.type === "land" && it.lat != null && it.lon != null) {
         coords.push([it.lat, it.lon]);
         const icon = L.divIcon({
-          html: `<div style="padding:2px 6px;background:#ff9900;color:#0a0e14;border-radius:3px;font-size:10px;font-weight:bold;font-family:monospace">LND</div>`,
+          html: `<div style="padding:2px 6px;background:#ff9900;color:#ffffff;border-radius:3px;font-size:10px;font-weight:bold;font-family:monospace">LND</div>`,
           iconSize: [34, 20],
           iconAnchor: [17, 10],
           className: "",

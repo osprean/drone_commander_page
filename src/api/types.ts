@@ -39,24 +39,24 @@ export interface DroneConnection {
 }
 
 export interface AttitudePayload {
-  roll: number;
-  pitch: number;
-  yaw: number;
+  roll_deg: number;
+  pitch_deg: number;
+  yaw_deg: number;
   ts?: number;
 }
 
 export interface PositionPayload {
-  lat: number;
-  lon: number;
-  alt_msl?: number;
-  alt_rel?: number;
+  lat_deg: number;
+  lon_deg: number;
+  alt_msl_m?: number;
+  alt_rel_m?: number;
   ts?: number;
 }
 
 export interface BatteryPayload {
-  voltage: number;
-  current: number;
-  percentage: number;
+  voltage_v: number;
+  current_a: number;
+  "remaining_%": number;
   ts?: number;
 }
 
@@ -64,8 +64,8 @@ export interface StatePayload {
   armed: boolean;
   arm_ready?: boolean;
   gps_lock?: boolean;
-  gps_level?: number;
-  flight_mode?: string;
+  gps_lock_level?: number;
+  mode?: string;
   mission_speed_ms?: number | null;
   ts?: number;
 }

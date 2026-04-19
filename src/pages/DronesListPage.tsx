@@ -22,11 +22,11 @@ export function DronesListPage() {
       <Box p={6} overflowY="auto" h="100%">
         {isLoading && (
           <Center h="60vh">
-            <Spinner size="xl" color="accent.500" />
+            <Spinner size="xl" color="teal.500" />
           </Center>
         )}
         {error && (
-          <Text color="red.400">Error cargando drones: {(error as Error).message}</Text>
+          <Text color="red.500">Error cargando drones: {(error as Error).message}</Text>
         )}
         {!isLoading && data && data.length === 0 && (
           <Center h="40vh">
@@ -43,27 +43,30 @@ export function DronesListPage() {
                 key={d.resource_id}
                 role="button"
                 onClick={() => navigate(`/drones/${d.resource_id}`)}
-                bg="#10151d"
+                bg="white"
                 border="1px solid"
-                borderColor={online ? "accent.500" : "#1f2733"}
-                rounded="md"
+                borderColor={online ? "teal.500" : "gray.200"}
+                rounded="xl"
                 p={4}
                 cursor="pointer"
-                _hover={{ borderColor: "accent.500", transform: "translateY(-1px)" }}
+                shadow="sm"
+                _hover={{ borderColor: "teal.500", transform: "translateY(-1px)", shadow: "md" }}
                 transition="all 0.15s"
               >
                 <HStack justify="space-between" mb={2}>
-                  <Heading size="sm">{d.name}</Heading>
+                  <Heading size="sm" color="gray.800">
+                    {d.name}
+                  </Heading>
                   <Badge
-                    bg={online ? "accent.500" : "#1f2733"}
-                    color={online ? "#0a0e14" : "gray.400"}
+                    colorScheme={online ? "teal" : "gray"}
+                    variant="solid"
                     rounded="full"
                     px={2}
                   >
                     {online ? "ONLINE" : "OFFLINE"}
                   </Badge>
                 </HStack>
-                <Stack spacing={1} fontSize="xs" color="gray.400">
+                <Stack spacing={1} fontSize="xs" color="gray.500">
                   <Text>NS: {d.mqtt_namespace ?? "—"}</Text>
                   <Text>Serial: {d.serial ?? "—"}</Text>
                   <HStack spacing={2}>

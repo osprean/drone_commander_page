@@ -76,7 +76,7 @@ export function DroneCommandPage() {
 
   // Start mission sequence
   const [startSeq, setStartSeq] = useState<StartSeq>(null);
-  const [startBtnLabel, setStartBtnLabel] = useState("▶▶ START MISSION");
+  const [startBtnLabel, setStartBtnLabel] = useState("Iniciar misión");
 
   const mapRef = useRef<MapPanelHandle>(null);
   const missionLoadToEditor = useRef(false);
@@ -92,16 +92,16 @@ export function DroneCommandPage() {
         if (startSeq === "arming") {
           if (!r.success) {
             setStartSeq(null);
-            setStartBtnLabel("▶▶ START MISSION");
-            toast({ status: "error", title: "Arming failed", description: r.message });
+            setStartBtnLabel("Iniciar misión");
+            toast({ status: "error", title: "Armado falló", description: r.message });
             return;
           }
           setStartSeq("starting");
-          setStartBtnLabel("▶ Starting mission…");
+          setStartBtnLabel("Arrancando misión…");
           cmds.startMission.mutate(undefined, {
             onError: (e: any) => {
               setStartSeq(null);
-              setStartBtnLabel("▶▶ START MISSION");
+              setStartBtnLabel("Iniciar misión");
               toast({ status: "error", title: "Start failed", description: e?.message });
             },
           });
@@ -112,10 +112,10 @@ export function DroneCommandPage() {
         if (startSeq === "starting") {
           setStartSeq(null);
           if (r.success) {
-            setStartBtnLabel("✅ Mission started!");
-            setTimeout(() => setStartBtnLabel("▶▶ START MISSION"), 3000);
+            setStartBtnLabel("✓ Misión iniciada");
+            setTimeout(() => setStartBtnLabel("Iniciar misión"), 3000);
           } else {
-            setStartBtnLabel("▶▶ START MISSION");
+            setStartBtnLabel("Iniciar misión");
             toast({ status: "error", title: "Mission start failed", description: r.message });
           }
         }
@@ -146,16 +146,16 @@ export function DroneCommandPage() {
   useEffect(() => {
     if (didCenter.current) return;
     const pos = telemetry.position;
-    if (pos?.lat != null && pos?.lon != null && mapRef.current?.map) {
-      mapRef.current.map.setView([pos.lat, pos.lon], 17);
+    if (pos?.lat_deg != null && pos?.lon_deg != null && mapRef.current?.map) {
+      mapRef.current.map.setView([pos.lat_deg, pos.lon_deg], 17);
       didCenter.current = true;
     }
   }, [telemetry.position]);
 
   const dronePos = useMemo(() => {
     const p = telemetry.position;
-    if (p?.lat == null || p?.lon == null) return null;
-    return { lat: p.lat, lon: p.lon };
+    if (p?.lat_deg == null || p?.lon_deg == null) return null;
+    return { lat: p.lat_deg, lon: p.lon_deg };
   }, [telemetry.position]);
 
   // Map handlers
@@ -390,10 +390,10 @@ export function DroneCommandPage() {
   }
 
   const wsStatusColor = subscribed
-    ? "accent.500"
+    ? "teal.500"
     : connected
-      ? "#ffcc00"
-      : "#ff5555";
+      ? "yellow.400"
+      : "red.400";
 
   const mode: "telemetry" | "mission" = tabIdx === 1 ? "mission" : "telemetry";
 
@@ -405,7 +405,7 @@ export function DroneCommandPage() {
           <Button size="sm" variant="ghost" onClick={() => navigate("/")}>
             ← Flota
           </Button>
-          <Badge bg={wsStatusColor} color="#0a0e14" rounded="full" px={2}>
+          <Badge bg={wsStatusColor} color="white" rounded="full" px={2}>
             {subscribed ? "LIVE" : connected ? "CONN" : "OFF"}
           </Badge>
           <Text fontSize="xs" color="gray.500" fontFamily="mono">
@@ -419,7 +419,7 @@ export function DroneCommandPage() {
           <MapPanel
             ref={mapRef}
             dronePos={dronePos}
-            droneYaw={telemetry.attitude?.yaw ?? 0}
+            droneYaw={telemetry.attitude?.yaw_deg ?? 0}
             mode={mode}
             editableWps={wps}
             land={land}
@@ -430,10 +430,10 @@ export function DroneCommandPage() {
           />
         </Box>
         <Box
-          w="340px"
-          bg="#10151d"
+          w="360px"
+          bg="white"
           borderLeft="1px solid"
-          borderColor="#1f2733"
+          borderColor="gray.200"
           overflow="hidden"
           display="flex"
           flexDirection="column"
@@ -447,7 +447,7 @@ export function DroneCommandPage() {
             display="flex"
             flexDirection="column"
           >
-            <TabList bg="#0a0e14" borderColor="#1f2733">
+            <TabList bg="gray.50" borderColor="gray.200">
               <Tab fontSize="xs" fontFamily="mono" letterSpacing="wider">
                 TELEMETRY
               </Tab>

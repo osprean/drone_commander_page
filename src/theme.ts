@@ -1,17 +1,12 @@
 import { extendTheme, type ThemeConfig } from "@chakra-ui/react";
 
 const config: ThemeConfig = {
-  initialColorMode: "dark",
+  initialColorMode: "light",
   useSystemColorMode: false,
 };
 
 export const theme = extendTheme({
   config,
-  semanticTokens: {
-    colors: {
-      sideBar: { default: "#55565A", _dark: "#55565A" },
-    },
-  },
   fonts: {
     heading: `Inter, system-ui, Avenir, Helvetica, Arial, sans-serif`,
     body: `Inter, system-ui, Avenir, Helvetica, Arial, sans-serif`,
@@ -33,7 +28,7 @@ export const theme = extendTheme({
   styles: {
     global: {
       "html, body, #root": { height: "100%", margin: 0, padding: 0 },
-      body: { bg: "#2D3748", color: "white" },
+      body: { bg: "gray.50", color: "gray.800" },
       "::selection": { bg: "rgba(90,175,186,0.35)" },
     },
   },
