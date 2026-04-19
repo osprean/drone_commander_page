@@ -157,8 +157,9 @@ export function TelemetryPanel({
           bg="#00aa55"
           color="#0a0e14"
           _hover={{ opacity: 0.85 }}
-          dangerouslySetInnerHTML={{ __html: startMissionLabel }}
-        />
+        >
+          {startMissionLabel}
+        </Button>
       </Stack>
     </Stack>
   );
