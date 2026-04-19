@@ -1,18 +1,48 @@
-Playbook: desplegar SPA nueva en subdominio con backend comacon_web_backend
-Arquitectura destino: SPA estática servida por nginx del backend en <sub>.staging.osprean.net, assets en volumen host, deploy vía GitHub Actions self-hosted runner.
+Playbook: desplegar SPA en subdominio <sub>.staging.osprean.net
+Ejemplo ejecución: <sub>=drones, <volume>=drones, <repo>=drones-panel, email gomez@usal.es.
+
+Arquitectura
+SPA estática servida por nginx de comacon_web_backend. Assets en volumen host. Deploy vía GitHub Actions self-hosted runner (o manual build + scp en su defecto).
 
 Variables a sustituir
-<sub> — subdominio (ej. foo)
-<repo> — nombre repo GitHub (ej. foo-panel)
-<volume> — nombre dir volumen (ej. foo)
-<framework> — Vite/Next/CRA (asume Vite aquí)
+<sub> — subdominio (drones)
+<repo> — nombre repo GitHub
+<volume> — dir en /home/osprean/.volumes/<volume>
 1. DNS
-Registro A: <sub>.staging.osprean.net → IP de staging.osprean.net (68.221.160.100 hoy). TTL 300 inicio.
-Cert SSL ya cubierto por wildcard *.staging.osprean.net en comacon_web_backend/nginx/cer3.cer. Sin coste.
+Registro A: <sub>.staging.osprean.net → 68.221.160.100 (misma IP que staging). TTL 300.
 
-2. Repo SPA
-Configura Vite (o framework) para servir desde raíz:
+Verifica propagación antes de seguir:
 
+
+dig +short <sub>.staging.osprean.net @8.8.8.8
+2. Certificado TLS
+IMPORTANTE: cert existente cer3.cer es wildcard *.osprean.net — NO cubre subdominios de segundo nivel. Hay que sacar cert Let's Encrypt por cada subdominio bajo staging.osprean.net.
+
+En server:
+
+
+cd /home/osprean/comacon_web_backend && \
+docker-compose stop nginx && \
+sudo docker run --rm -p 80:80 \
+  -v /etc/letsencrypt:/etc/letsencrypt \
+  certbot/certbot certonly --standalone \
+  -d <sub>.staging.osprean.net \
+  --email gomez@usal.es --agree-tos --no-eff-email --non-interactive && \
+docker-compose start nginx
+Quedan en:
+
+
+/etc/letsencrypt/live/<sub>.staging.osprean.net/fullchain.pem
+/etc/letsencrypt/live/<sub>.staging.osprean.net/privkey.pem
+Dura 90 días. Renovación automática pendiente de configurar (tarea separada).
+
+3. Volumen server
+
+mkdir -p /home/osprean/.volumes/<volume>
+sudo chown -R osprean:osprean /home/osprean/.volumes/<volume>
+sudo chmod -R u+rwX /home/osprean/.volumes/<volume>
+4. Repo SPA
+4.1 Vite (o framework) raíz
 
 // vite.config.ts
 export default defineConfig({
@@ -23,10 +53,14 @@ Router sin basename:
 
 
 <BrowserRouter>
-Sin Dockerfile, sin docker-compose, sin nginx local. Todo eso lo pone el backend.
+NO Dockerfile, NO docker-compose, NO nginx dentro del repo. Eso lo pone el backend.
 
-Workflow .github/workflows/deploy.yml:
+4.2 API client CSRF (si hay auth)
+Copiar patrón de admin-panel/src/api/client.ts:
 
+credentials: 'include' en fetch
+Lee cookie csrf_access_token, manda header X-CSRF-TOKEN
+4.3 Workflow .github/workflows/deploy.yml
 
 name: Build <repo> Static Files
 on:
@@ -54,30 +88,27 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/osprean/comacon_web_backend/dispatches \
             -d '{"event_type": "frontend-updated"}'
-Secret BACKEND_DISPATCH_TOKEN en settings del repo (mismo PAT que otros frontends).
+Secret BACKEND_DISPATCH_TOKEN en settings del repo (PAT con scope repo, mismo token que otros frontends).
 
-3. Servidor (una vez)
+Sin workflow / manual: build local, scp al server, rsync a volumen. El workflow backend se triggea igual si dispatch manual.
 
-mkdir -p /home/osprean/.volumes/<volume>
-sudo chown -R osprean:osprean /home/osprean/.volumes/<volume>
-sudo chmod -R u+rwX /home/osprean/.volumes/<volume>
-4. Repo comacon_web_backend (branch staging)
-4.1 nginx/nginx.conf.template
-Añadir <sub> al redirect 80→443 y nuevo server block 443:
+5. Repo comacon_web_backend (branch staging)
+5.1 nginx/nginx.conf.template
+Añadir subdominio al redirect 80→443 y nuevo server block 443:
 
 
-# redirect block
 server {
   listen 80;
   server_name ${NGINX_HOST} admin.${NGINX_HOST} <sub>.${NGINX_HOST};
   return 301 https://$host$request_uri;
 }
 
-# nuevo vhost estático
+# ... resto sin tocar ...
+
 server {
   listen 443 ssl;
-  ssl_certificate     /etc/nginx/ssl/certificate.cer;
-  ssl_certificate_key /etc/nginx/ssl/certificate.key;
+  ssl_certificate     /etc/letsencrypt/live/<sub>.staging.osprean.net/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/<sub>.staging.osprean.net/privkey.pem;
   server_name <sub>.${NGINX_HOST};
 
   root /var/www/<volume>;
@@ -109,8 +140,8 @@ server {
     return 404;
   }
 }
-4.2 docker-compose.yaml
-Mount read-only en servicio nginx:
+5.2 docker-compose.yaml
+Servicio nginx, añadir mount volumen (mount /etc/letsencrypt ya existe desde admin):
 
 
 nginx:
@@ -120,8 +151,9 @@ nginx:
     - ./nginx/certificate.key:/etc/nginx/ssl/certificate.key:ro
     - /home/osprean/.volumes/admin:/var/www/admin:ro
     - /home/osprean/.volumes/<volume>:/var/www/<volume>:ro
-4.3 CORS y cookies (si SPA llama a API)
-Editar flask/config/staging.py:
+    - /etc/letsencrypt:/etc/letsencrypt:ro
+5.3 CORS (si SPA llama API)
+flask/config/staging.py:
 
 
 CORS_ALLOWED_ORIGINS = [
@@ -131,37 +163,35 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-JWT_COOKIE_DOMAIN=".osprean.net" ya cubre todos los subdominios — no tocar.
+Cookies JWT ya OK: JWT_COOKIE_DOMAIN=".osprean.net" cubre todo. SameSite=None+Secure set en flask/web/__init__.py. No tocar.
 
-flask/web/__init__.py ya tiene SameSite=None, Secure=True, supports_credentials=True. No tocar.
+6. Orden de ejecución
+DNS creado, propagado (dig +short <sub>.staging.osprean.net @8.8.8.8 devuelve IP).
+Cert LE en server (comando sección 2). Nginx se para 20s durante challenge.
+mkdir volumen server con permisos.
+Secret BACKEND_DISPATCH_TOKEN en repo SPA nuevo.
+Push SPA a main → workflow builds + copia a volumen. Verifica:
 
-SPA cliente HTTP debe:
+ls /home/osprean/.volumes/<volume>/
+# assets/ index.html
+Commit backend (nginx + compose + CORS) branch staging → deploy automático reinicia nginx.
+Verifica:
 
-credentials: 'include'
-Leer cookie csrf_access_token, mandar como header X-CSRF-TOKEN
-Ejemplo funcional: admin-panel/src/api/client.ts
-El workflow backend deploy.yml (trigger repository_dispatch: frontend-updated) reinicia nginx → coge el nuevo mount y vhost.
-
-5. Orden de ejecución
-Crear DNS, esperar propagación (dig +short <sub>.staging.osprean.net @8.8.8.8).
-mkdir volumen en servidor con permisos correctos.
-Secret BACKEND_DISPATCH_TOKEN en repo nuevo.
-Push repo SPA a main → workflow builds + copia a volumen.
-Verificar ls /home/osprean/.volumes/<volume>/ muestra assets/ index.html.
-Commit backend (nginx template + compose + CORS) a branch staging → deploy automático reinicia nginx.
-Verificar: curl -sk https://<sub>.staging.osprean.net/ | head -5 devuelve HTML con <div id="root">.
-Browser: abrir, login, ver que fetch + cookies cross-subdomain funcionan.
-6. Anti-patrones prohibidos
-NO crear container Docker para la SPA. Migración de admin-panel se hizo por coupling Docker network. Repetir rompe esto.
-NO compartir comacon_web_backend_default network con otro compose project.
-NO proxy /sub/ desde nginx principal. Usar subdominio.
-NO cookies sin punto en dominio (osprean.net ≠ .osprean.net).
-NO hardcodear origen CORS sin añadir supports_credentials y SameSite=None.
-7. Ficheros referencia
+curl -sk https://<sub>.staging.osprean.net/ | head -5
+# <!doctype html>... <div id="root">
+Navegador: login + fetch funciona cross-subdomain.
+7. Anti-patrones
+NO wildcard server_name *.${NGINX_HOST} en bloque main — nuevo server específico lo reemplaza.
+NO Dockerfile en repo SPA. Cero containers para frontend.
+NO compartir network Docker entre compose projects.
+NO cookies sin punto: .osprean.net ≠ osprean.net.
+NO HSTS includeSubDomains; preload antes de tener cert válido (cert malo + HSTS = browser bloquea permanente hasta chrome://net-internals/#hsts delete).
+NO asumir cert existente cubre subdominios de 2º nivel: *.osprean.net NO cubre <sub>.staging.osprean.net.
+8. Ficheros referencia
 admin-panel/.github/workflows/deploy.yml
-admin-panel/vite.config.ts (base /)
-admin-panel/src/api/client.ts (CSRF handling)
-comacon_web_backend/nginx/nginx.conf.template (server blocks)
-comacon_web_backend/docker-compose.yaml (mount)
-comacon_web_backend/flask/config/staging.py (CORS)
-comacon_web_backend/flask/web/__init__.py (JWT cookie config)
+admin-panel/vite.config.ts
+admin-panel/src/api/client.ts
+comacon_web_backend/nginx/nginx.conf.template
+comacon_web_backend/docker-compose.yaml
+comacon_web_backend/flask/config/staging.py
+comacon_web_backend/flask/web/__init__.py
