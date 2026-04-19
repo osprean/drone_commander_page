@@ -48,7 +48,10 @@ export function DroneCommandPage() {
   const toast = useToast();
 
   const { data: conn } = useDroneConnection(droneId);
-  const { telemetry, connected, subscribed, onResponse } = useDroneSocket(droneId);
+  const { telemetry, connected, subscribed, online, onResponse } = useDroneSocket(
+    droneId,
+    conn?.mqtt_namespace,
+  );
   const cmds = useDroneCommands(droneId);
 
   const [tabIdx, setTabIdx] = useState(0);
@@ -407,6 +410,14 @@ export function DroneCommandPage() {
           </Button>
           <Badge bg={wsStatusColor} color="white" rounded="full" px={2}>
             {subscribed ? "LIVE" : connected ? "CONN" : "OFF"}
+          </Badge>
+          <Badge
+            colorScheme={online ? "green" : "red"}
+            variant="solid"
+            rounded="full"
+            px={2}
+          >
+            {online ? "ONLINE" : "OFFLINE"}
           </Badge>
           <Text fontSize="xs" color="gray.500" fontFamily="mono">
             {conn?.mqtt_namespace ?? ""}

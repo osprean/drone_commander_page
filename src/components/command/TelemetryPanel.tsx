@@ -85,8 +85,8 @@ export function TelemetryPanel({
   startMissionLabel,
   startMissionDisabled,
 }: Props) {
-  const { attitude, position, battery, state } = telemetry;
-  const pct = battery?.["remaining_%"] ?? null;
+  const { attitude, position, battery_status, state } = telemetry;
+  const pct = battery_status?.["remaining_%"] ?? null;
   const batteryIcon =
     pct === null ? FaBatteryEmpty : pct > 50 ? FaBatteryFull : pct > 20 ? FaBatteryHalf : FaBatteryEmpty;
   const batteryColor =
@@ -167,7 +167,7 @@ export function TelemetryPanel({
             BATERÍA
           </Text>
           <Text fontFamily="mono" fontSize="xs" color="gray.700">
-            {battery ? `${battery.voltage_v.toFixed(1)} V · ${battery.current_a.toFixed(1)} A` : "—"}
+            {battery_status ? `${battery_status.voltage_v.toFixed(1)} V · ${battery_status.current_a.toFixed(1)} A` : "—"}
           </Text>
         </HStack>
         <Box h="6px" bg="gray.200" rounded="full" overflow="hidden">
