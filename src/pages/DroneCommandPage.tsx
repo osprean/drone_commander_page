@@ -72,6 +72,13 @@ export function DroneCommandPage() {
   const [cameraOn, setCameraOn] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
+  // Fire detection
+  const [detectionOn, setDetectionOn] = useState(false);
+  const [detectionBusy, setDetectionBusy] = useState(false);
+
+  // Follow drone on map
+  const [followDrone, setFollowDrone] = useState(false);
+
   // Start mission sequence
   const [startSeq, setStartSeq] = useState<StartSeq>(null);
   const [startBtnLabel, setStartBtnLabel] = useState("Iniciar misión");
@@ -217,13 +224,15 @@ export function DroneCommandPage() {
   // Auto-center on drone first fix
   const didCenter = useRef(false);
   useEffect(() => {
-    if (didCenter.current) return;
     const pos = telemetry.position;
-    if (pos?.lat_deg != null && pos?.lon_deg != null && mapRef.current?.map) {
+    if (pos?.lat_deg == null || pos?.lon_deg == null || !mapRef.current?.map) return;
+    if (!didCenter.current) {
       mapRef.current.map.setView([pos.lat_deg, pos.lon_deg], 17);
       didCenter.current = true;
+    } else if (followDrone) {
+      mapRef.current.map.panTo([pos.lat_deg, pos.lon_deg], { animate: true });
     }
-  }, [telemetry.position]);
+  }, [telemetry.position, followDrone]);
 
   const dronePos = useMemo(() => {
     const p = telemetry.position;
@@ -522,6 +531,53 @@ export function DroneCommandPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [droneId]);
 
+  async function toggleDetection() {
+    if (!droneId) return;
+    setDetectionBusy(true);
+    try {
+      if (detectionOn) {
+        const r: any = await cmds.detectionOff.mutateAsync();
+        if (r?.success !== false) setDetectionOn(false);
+        toast({
+          status: r?.success === false ? "error" : "success",
+          title: r?.success === false ? "Detección apagó falló" : "Detección apagada",
+          description: r?.message,
+        });
+      } else {
+        const r: any = await cmds.detectionOn.mutateAsync();
+        if (r?.success !== false) setDetectionOn(true);
+        toast({
+          status: r?.success === false ? "error" : "success",
+          title: r?.success === false ? "Detección encendido falló" : "Detección activa",
+          description: r?.message,
+        });
+      }
+    } catch (e: any) {
+      toast({
+        status: "error",
+        title: "Detección error",
+        description: e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message,
+      });
+    } finally {
+      setDetectionBusy(false);
+    }
+  }
+
+  // Poll detection status once on mount
+  const didCheckDetection = useRef(false);
+  useEffect(() => {
+    if (didCheckDetection.current || droneId == null) return;
+    didCheckDetection.current = true;
+    cmds.detectionStatus.mutate(undefined, {
+      onSuccess: (r: any) => {
+        const on = r?.data?.detection_on ?? r?.detection_on ?? false;
+        setDetectionOn(!!on);
+      },
+      onError: () => {},
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [droneId]);
+
   function setLandFromDrone() {
     if (dronePos == null) return toast({ status: "warning", title: "No drone position" });
     setLand((l) => ({ ...l, lat: dronePos.lat, lon: dronePos.lon }));
@@ -619,6 +675,11 @@ export function DroneCommandPage() {
                 cameraOn={cameraOn}
                 cameraBusy={cameraBusy}
                 takeoffAlt={takeoffAlt}
+                detectionOn={detectionOn}
+                detectionBusy={detectionBusy}
+                followDrone={followDrone}
+                onToggleFollow={() => setFollowDrone((v) => !v)}
+                onToggleDetection={toggleDetection}
                 onToggleCamera={toggleCamera}
                 onToggleArm={toggleArm}
                 onSetGuided={setGuided}

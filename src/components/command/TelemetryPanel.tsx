@@ -25,6 +25,11 @@ interface Props {
   cameraOn: boolean;
   cameraBusy: boolean;
   takeoffAlt: number;
+  detectionOn: boolean;
+  detectionBusy: boolean;
+  followDrone: boolean;
+  onToggleFollow: () => void;
+  onToggleDetection: () => void;
   onToggleCamera: () => void;
   onToggleArm: () => void;
   onSetGuided: () => void;
@@ -122,6 +127,11 @@ export function TelemetryPanel({
   cameraOn,
   cameraBusy,
   takeoffAlt,
+  detectionOn,
+  detectionBusy,
+  followDrone,
+  onToggleFollow,
+  onToggleDetection,
   onToggleCamera,
   onToggleArm,
   onSetGuided,
@@ -282,6 +292,27 @@ export function TelemetryPanel({
           rounded="lg"
         >
           {cameraOn ? "APAGAR CÁMARA" : "ENCENDER CÁMARA"}
+        </Button>
+        <Button
+          size="sm"
+          colorScheme={detectionOn ? "red" : "orange"}
+          color="white"
+          onClick={onToggleDetection}
+          isDisabled={detectionBusy}
+          rounded="lg"
+        >
+          {detectionOn ? "DETENER DETECCIÓN DE INCENDIOS" : "INICIAR DETECCIÓN DE INCENDIOS"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme={followDrone ? "teal" : "gray"}
+          borderColor={followDrone ? "teal.500" : "gray.300"}
+          color={followDrone ? "teal.600" : "gray.700"}
+          onClick={onToggleFollow}
+          rounded="lg"
+        >
+          {followDrone ? "SIGUIENDO DRON ✓" : "SEGUIR DRON EN MAPA"}
         </Button>
         <Button
           size="sm"

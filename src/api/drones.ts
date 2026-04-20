@@ -78,3 +78,18 @@ export async function cmdCameraStatus(id: number) {
   const { data } = await api.get(`/api/drones/${id}/camera/status`);
   return data;
 }
+
+export async function cmdDetectionOn(id: number) {
+  const { data } = await api.post(`/api/drones/${id}/detection/on`, {});
+  return data;
+}
+
+export async function cmdDetectionOff(id: number) {
+  const { data } = await api.post(`/api/drones/${id}/detection/off`, {});
+  return data;
+}
+
+export async function cmdDetectionStatus(id: number) {
+  const { data } = await api.get(`/api/drones/${id}/detection/status`);
+  return data;
+}

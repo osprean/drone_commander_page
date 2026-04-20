@@ -4,6 +4,9 @@ import {
   cmdCameraOff,
   cmdCameraOn,
   cmdCameraStatus,
+  cmdDetectionOff,
+  cmdDetectionOn,
+  cmdDetectionStatus,
   cmdDisarm,
   cmdGetDroneMission,
   cmdLand,
@@ -30,6 +33,9 @@ export function useDroneCommands(droneId: number | undefined) {
   const cameraOff = useMutation({ mutationFn: () => cmdCameraOff(droneId!) });
   const cameraStatus = useMutation({ mutationFn: () => cmdCameraStatus(droneId!) });
   const stream = useMutation({ mutationFn: () => fetchDroneStream(droneId!) });
+  const detectionOn = useMutation({ mutationFn: () => cmdDetectionOn(droneId!) });
+  const detectionOff = useMutation({ mutationFn: () => cmdDetectionOff(droneId!) });
+  const detectionStatus = useMutation({ mutationFn: () => cmdDetectionStatus(droneId!) });
 
   return {
     arm,
@@ -44,5 +50,8 @@ export function useDroneCommands(droneId: number | undefined) {
     cameraOff,
     cameraStatus,
     stream,
+    detectionOn,
+    detectionOff,
+    detectionStatus,
   };
 }
