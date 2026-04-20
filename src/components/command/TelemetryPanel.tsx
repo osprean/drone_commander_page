@@ -24,9 +24,12 @@ interface Props {
   videoUrl: string | null;
   cameraOn: boolean;
   cameraBusy: boolean;
+  takeoffAlt: number;
   onToggleCamera: () => void;
   onToggleArm: () => void;
   onSetGuided: () => void;
+  onTakeoff: () => void;
+  onLand: () => void;
   onStartMission: () => void;
   onRefreshMission: () => void;
   startMissionLabel: string;
@@ -118,9 +121,12 @@ export function TelemetryPanel({
   videoUrl,
   cameraOn,
   cameraBusy,
+  takeoffAlt,
   onToggleCamera,
   onToggleArm,
   onSetGuided,
+  onTakeoff,
+  onLand,
   onStartMission,
   onRefreshMission,
   startMissionLabel,
@@ -133,7 +139,8 @@ export function TelemetryPanel({
   const batteryColor =
     pct === null ? "gray.400" : pct > 50 ? "green.400" : pct > 20 ? "orange.400" : "red.400";
   const armed = state?.armed;
-  const mode = state?.mode ?? "—";
+  const mode = state?.flight_mode ?? "—";
+  const isGuided = mode === "GUIDED";
 
   return (
     <Stack spacing={3} p={3}>
@@ -147,12 +154,12 @@ export function TelemetryPanel({
           onClick={onToggleArm}
         />
         <Card
-          label="Modo"
+          label={isGuided ? "Modo · GUIDED" : "Modo · tap → GUIDED"}
           value={mode}
           icon={FaPlane}
           color="teal.500"
-          highlight={mode === "GUIDED" ? "teal" : "none"}
-          onClick={onSetGuided}
+          highlight={isGuided ? "teal" : "none"}
+          onClick={isGuided ? undefined : onSetGuided}
         />
       </SimpleGrid>
 
@@ -245,6 +252,23 @@ export function TelemetryPanel({
       <VideoFeed url={videoUrl} enabled={cameraOn} />
 
       <Stack spacing={2}>
+        <Button
+          size="sm"
+          colorScheme="green"
+          onClick={onTakeoff}
+          isDisabled={!armed}
+          rounded="lg"
+        >
+          🚀 Despegar ({takeoffAlt} m)
+        </Button>
+        <Button
+          size="sm"
+          colorScheme="yellow"
+          onClick={onLand}
+          rounded="lg"
+        >
+          🛬 Aterrizar
+        </Button>
         <Button
           size="sm"
           colorScheme={cameraOn ? "red" : "teal"}

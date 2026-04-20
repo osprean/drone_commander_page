@@ -143,6 +143,18 @@ export function DroneCommandPage() {
           title: r.success ? "Modo GUIDED OK" : "Set GUIDED falló",
           description: r.message,
         });
+      } else if (r.action === "takeoff") {
+        toast({
+          status: r.success ? "success" : "error",
+          title: r.success ? "Despegando" : "Despegue falló",
+          description: r.message,
+        });
+      } else if (r.action === "land") {
+        toast({
+          status: r.success ? "success" : "error",
+          title: r.success ? "Aterrizando" : "Aterrizaje falló",
+          description: r.message,
+        });
       } else if (r.action === "mission/get") {
         const data = (r.data ?? {}) as { mission_items?: MissionItem[]; speed_ms?: number };
         const items = data.mission_items ?? [];
@@ -428,7 +440,24 @@ export function DroneCommandPage() {
     }
   }
   function setGuided() {
+    if (telemetry.state?.flight_mode === "GUIDED") {
+      toast({ status: "info", title: "Ya en GUIDED" });
+      return;
+    }
     cmds.setGuided.mutate(undefined, { onError: httpErr("Set GUIDED falló") });
+  }
+  function doTakeoff() {
+    if (!telemetry.state?.armed) {
+      toast({ status: "warning", title: "Dron desarmado", description: "Arma primero" });
+      return;
+    }
+    const alt = takeoffAlt > 0 ? takeoffAlt : 10;
+    if (!confirm(`¿Despegar a ${alt} m?`)) return;
+    cmds.takeoff.mutate(alt, { onError: httpErr("Despegue falló") });
+  }
+  function doLand() {
+    if (!confirm("¿Aterrizar ahora?")) return;
+    cmds.land.mutate(undefined, { onError: httpErr("Aterrizaje falló") });
   }
   function startMission() {
     if (!confirm("This will ARM the drone and start the mission loaded on the FCU. Are you sure?"))
@@ -545,23 +574,26 @@ export function DroneCommandPage() {
                 MISSION
               </Tab>
             </TabList>
-            <TabPanels flex="1" overflow="hidden">
-              <TabPanel p={0} h="100%" overflowY="auto">
+            <TabPanels flex="1" overflow="hidden" minH={0}>
+              <TabPanel p={0} h="100%" overflowY="auto" overflowX="hidden">
                 <TelemetryPanel
                   telemetry={telemetry}
                   videoUrl={videoUrl}
                   cameraOn={cameraOn}
                   cameraBusy={cameraBusy}
+                  takeoffAlt={takeoffAlt}
                   onToggleCamera={toggleCamera}
                   onToggleArm={toggleArm}
                   onSetGuided={setGuided}
+                  onTakeoff={doTakeoff}
+                  onLand={doLand}
                   onStartMission={startMission}
                   onRefreshMission={refreshDroneMission}
                   startMissionLabel={startBtnLabel}
                   startMissionDisabled={startSeq !== null}
                 />
               </TabPanel>
-              <TabPanel p={0} h="100%" overflow="hidden">
+              <TabPanel p={0} h="100%" overflowY="auto" overflowX="hidden">
                 <MissionEditor
                   missionName={missionName}
                   setMissionName={setMissionName}

@@ -34,6 +34,16 @@ export async function cmdSetGuided(id: number) {
   return sendGenericCommand(id, "set_mode/guided");
 }
 
+export async function cmdTakeoff(id: number, altM: number) {
+  const { data } = await api.post(`/api/drones/${id}/takeoff`, { alt_m: altM });
+  return data;
+}
+
+export async function cmdLand(id: number) {
+  const { data } = await api.post(`/api/drones/${id}/land`, {});
+  return data;
+}
+
 export async function cmdStartMission(id: number) {
   const { data } = await api.post(`/api/drones/${id}/start-mission`, {});
   return data;

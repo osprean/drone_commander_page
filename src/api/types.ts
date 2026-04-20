@@ -62,10 +62,10 @@ export interface BatteryPayload {
 
 export interface StatePayload {
   armed: boolean;
-  arm_ready?: boolean;
+  arming_ready?: boolean;
   gps_lock?: boolean;
-  gps_lock_level?: number;
-  mode?: string;
+  gps_lock_level?: number | string;
+  flight_mode?: string;
   mission_speed_ms?: number | null;
   ts?: number;
 }
