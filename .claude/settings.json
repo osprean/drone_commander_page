@@ -7,7 +7,9 @@
       "WebFetch(domain:legacy.reactjs.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npx vite *)",
-      "Bash(git -C /Users/luisgomez/Desktop/kraken/drone_commander_page status --short)"
+      "Bash(git -C /Users/luisgomez/Desktop/kraken/drone_commander_page status --short)",
+      "Bash(git -C /Users/luisgomez/Desktop/kraken/api-comandos-dron log --oneline -20 -- telem/telemetry_handler.py)",
+      "Bash(git -C /Users/luisgomez/Desktop/kraken/api-comandos-dron log --oneline -5)"
     ]
   }
 }

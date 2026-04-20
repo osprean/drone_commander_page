@@ -107,9 +107,10 @@ export function useDroneSocket(
     s.on("drone:battery_status", (msg: { data: BatteryPayload }) =>
       setTelemetry((t) => ({ ...t, battery_status: msg.data })),
     );
-    s.on("drone:state", (msg: { data: StatePayload }) =>
-      setTelemetry((t) => ({ ...t, state: msg.data })),
-    );
+    s.on("drone:state", (msg: { data: StatePayload }) => {
+      if (import.meta.env.DEV) console.debug("[drone:state]", msg.data);
+      setTelemetry((t) => ({ ...t, state: msg.data }));
+    });
     s.on("drone:online", (msg: { online: boolean }) => setOnline(msg.online));
     s.on(
       "drone:response",

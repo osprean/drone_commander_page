@@ -139,7 +139,8 @@ export function TelemetryPanel({
   const batteryColor =
     pct === null ? "gray.400" : pct > 50 ? "green.400" : pct > 20 ? "orange.400" : "red.400";
   const armed = state?.armed;
-  const mode = state?.flight_mode ?? "—";
+  const rawMode = state?.flight_mode;
+  const mode = rawMode && rawMode !== "---" ? rawMode : state ? "N/D" : "SIN DATO";
   const isGuided = mode === "GUIDED";
 
   return (
@@ -154,7 +155,7 @@ export function TelemetryPanel({
           onClick={onToggleArm}
         />
         <Card
-          label={isGuided ? "Modo · GUIDED" : "Modo · tap → GUIDED"}
+          label={isGuided ? "MODO" : "MODO · TAP PARA GUIDED"}
           value={mode}
           icon={FaPlane}
           color="teal.500"
@@ -255,46 +256,53 @@ export function TelemetryPanel({
         <Button
           size="sm"
           colorScheme="green"
+          color="white"
           onClick={onTakeoff}
           isDisabled={!armed}
           rounded="lg"
         >
-          🚀 Despegar ({takeoffAlt} m)
+          {`DESPEGAR (${takeoffAlt} m)`}
         </Button>
         <Button
           size="sm"
-          colorScheme="yellow"
+          bg="orange.400"
+          color="white"
+          _hover={{ bg: "orange.500" }}
           onClick={onLand}
           rounded="lg"
         >
-          🛬 Aterrizar
+          ATERRIZAR
         </Button>
         <Button
           size="sm"
           colorScheme={cameraOn ? "red" : "teal"}
+          color="white"
           onClick={onToggleCamera}
           isDisabled={cameraBusy}
           rounded="lg"
         >
-          {cameraOn ? "Apagar cámara" : "Encender cámara"}
+          {cameraOn ? "APAGAR CÁMARA" : "ENCENDER CÁMARA"}
         </Button>
         <Button
           size="sm"
           variant="outline"
-          borderColor="gray.200"
+          borderColor="gray.300"
+          color="gray.700"
           onClick={onRefreshMission}
           rounded="lg"
         >
-          ↻ Refrescar misión
+          REFRESCAR MISIÓN
         </Button>
         <Button
           size="sm"
-          colorScheme="orange"
+          bg="red.500"
+          color="white"
+          _hover={{ bg: "red.600" }}
           onClick={onStartMission}
           isDisabled={startMissionDisabled}
           rounded="lg"
         >
-          {startMissionLabel}
+          {(startMissionLabel || "INICIAR MISIÓN").toUpperCase()}
         </Button>
       </Stack>
     </Stack>
