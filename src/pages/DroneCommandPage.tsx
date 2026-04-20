@@ -478,17 +478,49 @@ export function DroneCommandPage() {
         setCameraOn(false);
         setVideoUrl(null);
       } else {
-        await cmds.cameraOn.mutateAsync();
-        const stream = await cmds.stream.mutateAsync();
-        setVideoUrl(stream?.url ?? null);
+        const resp: any = await cmds.cameraOn.mutateAsync();
+        const url =
+          resp?.https_url ??
+          resp?.data?.stream_url ??
+          resp?.stream_url ??
+          null;
+        if (!url) {
+          const fallback = await cmds.stream.mutateAsync();
+          setVideoUrl(fallback.stream_url ?? null);
+        } else {
+          setVideoUrl(url);
+        }
         setCameraOn(true);
       }
     } catch (e: any) {
-      toast({ status: "error", title: "Camera error", description: e?.message });
+      toast({
+        status: "error",
+        title: "Camera error",
+        description: e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message,
+      });
     } finally {
       setCameraBusy(false);
     }
   }
+
+  // Restore active stream on mount
+  const didRestoreStream = useRef(false);
+  useEffect(() => {
+    if (didRestoreStream.current) return;
+    if (droneId == null) return;
+    didRestoreStream.current = true;
+    cmds.stream.mutate(undefined, {
+      onSuccess: (info) => {
+        if (info.camera_on && info.stream_url) {
+          setVideoUrl(info.stream_url);
+          setCameraOn(true);
+          toast({ status: "info", title: "Stream activo restaurado" });
+        }
+      },
+      onError: () => {},
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [droneId]);
 
   function setLandFromDrone() {
     if (dronePos == null) return toast({ status: "warning", title: "No drone position" });

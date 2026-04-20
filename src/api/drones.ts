@@ -11,9 +11,15 @@ export async function fetchTelemetrySeed(id: number) {
   return data;
 }
 
-export async function fetchDroneStream(id: number) {
+export interface StreamInfo {
+  camera_on: boolean;
+  stream_url: string | null;
+  stream_id?: string | null;
+}
+
+export async function fetchDroneStream(id: number): Promise<StreamInfo> {
   const { data } = await api.get(`/api/drones/${id}/stream`);
-  return data as { url?: string | null; [k: string]: unknown };
+  return data as StreamInfo;
 }
 
 export async function sendGenericCommand(id: number, action: string, payload: unknown = {}) {

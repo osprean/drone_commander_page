@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Link, Text, useToast } from "@chakra-ui/react";
 import Hls from "hls.js";
 
 interface Props {
@@ -13,6 +13,7 @@ export function VideoFeed({ url, enabled }: Props) {
   const hlsRef = useRef<Hls | null>(null);
   const webrtcRef = useRef<RTCPeerConnection | null>(null);
   const [msg, setMsg] = useState<string>("CAM OFF");
+  const toast = useToast();
 
   useEffect(() => {
     return () => cleanup();
@@ -137,35 +138,93 @@ export function VideoFeed({ url, enabled }: Props) {
     }
   }, [url, enabled]);
 
+  async function copyUrl() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ status: "success", title: "URL copiada", duration: 1500 });
+    } catch {
+      toast({ status: "error", title: "No se pudo copiar" });
+    }
+  }
+
   return (
-    <Box
-      position="relative"
-      bg="black"
-      border="1px solid"
-      borderColor="gray.200"
-      rounded="md"
-      overflow="hidden"
-      minH="160px"
-    >
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        style={{ width: "100%", display: "none" }}
-      />
-      <img ref={imgRef} style={{ width: "100%", display: "none" }} alt="feed" />
-      {msg && (
+    <Box>
+      <Box
+        position="relative"
+        bg="black"
+        border="1px solid"
+        borderColor="gray.200"
+        rounded="md"
+        overflow="hidden"
+        minH="160px"
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          style={{ width: "100%", display: "none" }}
+        />
+        <img ref={imgRef} style={{ width: "100%", display: "none" }} alt="feed" />
+        {msg && (
+          <Box
+            position="absolute"
+            inset={0}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text fontSize="xs" color="gray.500" fontFamily="mono">
+              {msg}
+            </Text>
+          </Box>
+        )}
+      </Box>
+      {enabled && url && (
         <Box
-          position="absolute"
-          inset={0}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          mt={2}
+          p={2}
+          bg="gray.50"
+          border="1px solid"
+          borderColor="gray.200"
+          rounded="md"
         >
-          <Text fontSize="xs" color="gray.500" fontFamily="mono">
-            {msg}
+          <Text
+            fontSize="9px"
+            fontWeight="black"
+            color="gray.500"
+            letterSpacing="widest"
+            mb={1}
+          >
+            STREAM URL
           </Text>
+          <Link
+            href={url}
+            isExternal
+            fontSize="10px"
+            fontFamily="mono"
+            color="teal.600"
+            wordBreak="break-all"
+            display="block"
+          >
+            {url}
+          </Link>
+          <HStack mt={1} spacing={2}>
+            <Button size="xs" variant="outline" onClick={copyUrl}>
+              Copiar
+            </Button>
+            <Button
+              size="xs"
+              variant="outline"
+              as="a"
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Abrir
+            </Button>
+          </HStack>
         </Box>
       )}
     </Box>
