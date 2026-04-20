@@ -4,11 +4,6 @@ import {
   Button,
   Flex,
   HStack,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -548,80 +543,86 @@ export function DroneCommandPage() {
             onLandDrag={onLandDrag}
           />
         </Box>
-        <Box
+        <Flex
           w="360px"
           bg="white"
           borderLeft="1px solid"
           borderColor="gray.200"
-          overflow="hidden"
-          display="flex"
-          flexDirection="column"
+          direction="column"
+          h="100%"
+          minH={0}
         >
-          <Tabs
-            index={tabIdx}
-            onChange={setTabIdx}
-            variant="line"
-            colorScheme="teal"
-            flex="1"
-            display="flex"
-            flexDirection="column"
+          <HStack
+            spacing={0}
+            bg="gray.50"
+            borderBottom="1px solid"
+            borderColor="gray.200"
+            flexShrink={0}
           >
-            <TabList bg="gray.50" borderColor="gray.200">
-              <Tab fontSize="xs" fontFamily="mono" letterSpacing="wider">
-                TELEMETRY
-              </Tab>
-              <Tab fontSize="xs" fontFamily="mono" letterSpacing="wider">
-                MISSION
-              </Tab>
-            </TabList>
-            <TabPanels flex="1" overflow="hidden" minH={0}>
-              <TabPanel p={0} h="100%" overflowY="auto" overflowX="hidden">
-                <TelemetryPanel
-                  telemetry={telemetry}
-                  videoUrl={videoUrl}
-                  cameraOn={cameraOn}
-                  cameraBusy={cameraBusy}
-                  takeoffAlt={takeoffAlt}
-                  onToggleCamera={toggleCamera}
-                  onToggleArm={toggleArm}
-                  onSetGuided={setGuided}
-                  onTakeoff={doTakeoff}
-                  onLand={doLand}
-                  onStartMission={startMission}
-                  onRefreshMission={refreshDroneMission}
-                  startMissionLabel={startBtnLabel}
-                  startMissionDisabled={startSeq !== null}
-                />
-              </TabPanel>
-              <TabPanel p={0} h="100%" overflowY="auto" overflowX="hidden">
-                <MissionEditor
-                  missionName={missionName}
-                  setMissionName={setMissionName}
-                  missionSpeed={missionSpeed}
-                  setMissionSpeed={setMissionSpeed}
-                  takeoffAlt={takeoffAlt}
-                  setTakeoffAlt={setTakeoffAlt}
-                  wps={wps}
-                  updateWp={updateWp}
-                  removeWp={removeWp}
-                  land={land}
-                  setLandField={(f, v) =>
-                    setLand((l) => ({ ...l, [f]: v }))
-                  }
-                  setLandFromDrone={setLandFromDrone}
-                  editing={editingIdx !== null}
-                  onSave={saveMission}
-                  onUpdate={updateMission}
-                  onSaveAs={saveAsNew}
-                  onClear={clearEditor}
-                  onOpenSaved={() => setSavedOpen(true)}
-                  onSend={sendCurrent}
-                  onLoadFromDrone={loadFromDrone}
-                />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Box>
+            {(["TELEMETRY", "MISSION"] as const).map((label, i) => (
+              <Button
+                key={label}
+                flex="1"
+                size="sm"
+                variant="ghost"
+                rounded={0}
+                fontFamily="mono"
+                fontSize="xs"
+                letterSpacing="wider"
+                color={tabIdx === i ? "teal.600" : "gray.500"}
+                bg={tabIdx === i ? "white" : "transparent"}
+                borderBottom="2px solid"
+                borderColor={tabIdx === i ? "teal.500" : "transparent"}
+                onClick={() => setTabIdx(i)}
+              >
+                {label}
+              </Button>
+            ))}
+          </HStack>
+          <Box flex="1" minH={0} overflowY="auto" overflowX="hidden">
+            {tabIdx === 0 ? (
+              <TelemetryPanel
+                telemetry={telemetry}
+                videoUrl={videoUrl}
+                cameraOn={cameraOn}
+                cameraBusy={cameraBusy}
+                takeoffAlt={takeoffAlt}
+                onToggleCamera={toggleCamera}
+                onToggleArm={toggleArm}
+                onSetGuided={setGuided}
+                onTakeoff={doTakeoff}
+                onLand={doLand}
+                onStartMission={startMission}
+                onRefreshMission={refreshDroneMission}
+                startMissionLabel={startBtnLabel}
+                startMissionDisabled={startSeq !== null}
+              />
+            ) : (
+              <MissionEditor
+                missionName={missionName}
+                setMissionName={setMissionName}
+                missionSpeed={missionSpeed}
+                setMissionSpeed={setMissionSpeed}
+                takeoffAlt={takeoffAlt}
+                setTakeoffAlt={setTakeoffAlt}
+                wps={wps}
+                updateWp={updateWp}
+                removeWp={removeWp}
+                land={land}
+                setLandField={(f, v) => setLand((l) => ({ ...l, [f]: v }))}
+                setLandFromDrone={setLandFromDrone}
+                editing={editingIdx !== null}
+                onSave={saveMission}
+                onUpdate={updateMission}
+                onSaveAs={saveAsNew}
+                onClear={clearEditor}
+                onOpenSaved={() => setSavedOpen(true)}
+                onSend={sendCurrent}
+                onLoadFromDrone={loadFromDrone}
+              />
+            )}
+          </Box>
+        </Flex>
       </Flex>
 
       <SavedMissionsModal
