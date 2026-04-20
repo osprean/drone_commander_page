@@ -1,13 +1,16 @@
 import { useEffect, useRef } from "react";
 
 interface Props {
-  roll: number;
-  pitch: number;
-  yaw: number;
+  roll: number | null | undefined;
+  pitch: number | null | undefined;
+  yaw: number | null | undefined;
   size?: number;
 }
 
-export function AttitudeIndicator({ roll, pitch, yaw, size = 172 }: Props) {
+export function AttitudeIndicator({ roll, pitch, yaw, size = 160 }: Props) {
+  const rollV = roll ?? 0;
+  const pitchV = pitch ?? 0;
+  const yawV = yaw ?? 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -40,13 +43,13 @@ export function AttitudeIndicator({ roll, pitch, yaw, size = 172 }: Props) {
     // Horizon
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate((-roll * Math.PI) / 180);
-    const pitchOffset = pitch * 2;
+    ctx.rotate((-rollV * Math.PI) / 180);
+    const pitchOffset = pitchV * 2;
     // Sky
-    ctx.fillStyle = "#2a4a6a";
+    ctx.fillStyle = "#6FB7E8";
     ctx.fillRect(-r * 2, -r * 2 + pitchOffset, r * 4, r * 2);
     // Ground
-    ctx.fillStyle = "#6a4a2a";
+    ctx.fillStyle = "#B8895F";
     ctx.fillRect(-r * 2, pitchOffset, r * 4, r * 2);
     // Horizon line
     ctx.strokeStyle = "#ffffff";
@@ -89,9 +92,9 @@ export function AttitudeIndicator({ roll, pitch, yaw, size = 172 }: Props) {
       ctx.restore();
     }
     // Roll pointer
-    ctx.fillStyle = "#00e8cc";
+    ctx.fillStyle = "#5AAFBA";
     ctx.save();
-    ctx.rotate((-roll * Math.PI) / 180);
+    ctx.rotate((-rollV * Math.PI) / 180);
     ctx.beginPath();
     ctx.moveTo(0, -r + 1);
     ctx.lineTo(-5, -r + 10);
@@ -122,16 +125,16 @@ export function AttitudeIndicator({ roll, pitch, yaw, size = 172 }: Props) {
     ctx.fill();
 
     // Outer ring + yaw text
-    ctx.strokeStyle = "#1f2733";
+    ctx.strokeStyle = "#CBD5E0";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = "#00e8cc";
+    ctx.fillStyle = "#2D3748";
     ctx.font = "bold 10px monospace";
     ctx.textAlign = "center";
-    ctx.fillText(`HDG ${Math.round(yaw)}°`, cx, cy + r + 14);
-  }, [roll, pitch, yaw, size]);
+    ctx.fillText(`HDG ${Math.round(yawV)}°`, cx, cy + r - 6);
+  }, [rollV, pitchV, yawV, size]);
 
   return <canvas ref={canvasRef} style={{ display: "block" }} />;
 }

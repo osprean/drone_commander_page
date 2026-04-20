@@ -1,5 +1,4 @@
 import {
-  Badge,
   Box,
   Button,
   HStack,
@@ -16,6 +15,7 @@ import {
   FaPlane,
   FaSatelliteDish,
 } from "react-icons/fa";
+import { AttitudeIndicator } from "./AttitudeIndicator";
 import { VideoFeed } from "./VideoFeed";
 import type { DroneTelemetry } from "../../hooks/use-drone-socket";
 
@@ -45,14 +45,55 @@ function Card({
   value,
   icon,
   color = "accent.500",
+  onClick,
+  bg,
+  highlight,
 }: {
   label: string;
   value: string;
   icon: React.ElementType;
   color?: string;
+  onClick?: () => void;
+  bg?: string;
+  highlight?: "red" | "green" | "teal" | "none";
 }) {
+  const bgColor = bg
+    ?? (highlight === "red"
+      ? "red.50"
+      : highlight === "green"
+        ? "green.50"
+        : highlight === "teal"
+          ? "teal.50"
+          : "gray.50");
+  const borderColor =
+    highlight === "red"
+      ? "red.300"
+      : highlight === "green"
+        ? "green.300"
+        : highlight === "teal"
+          ? "teal.300"
+          : "transparent";
   return (
-    <Box bg="gray.50" p={3} rounded="xl" textAlign="center">
+    <Box
+      bg={bgColor}
+      p={3}
+      rounded="xl"
+      textAlign="center"
+      border="1px solid"
+      borderColor={borderColor}
+      cursor={onClick ? "pointer" : "default"}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      _hover={onClick ? { filter: "brightness(0.97)" } : undefined}
+      transition="filter 80ms"
+    >
       <HStack justify="center" mb={1}>
         <Icon as={icon} color={color} boxSize={3} />
         <Text
@@ -91,22 +132,36 @@ export function TelemetryPanel({
     pct === null ? FaBatteryEmpty : pct > 50 ? FaBatteryFull : pct > 20 ? FaBatteryHalf : FaBatteryEmpty;
   const batteryColor =
     pct === null ? "gray.400" : pct > 50 ? "green.400" : pct > 20 ? "orange.400" : "red.400";
+  const armed = state?.armed;
+  const mode = state?.mode ?? "—";
 
   return (
     <Stack spacing={3} p={3}>
-      <HStack justify="space-between">
-        <Badge
-          colorScheme={state?.armed ? "red" : "green"}
-          variant="solid"
-          rounded="full"
-          px={2}
-        >
-          {state?.armed === undefined ? "--" : state.armed ? "ARMED" : "DISARMED"}
-        </Badge>
-        <Badge variant="subtle" colorScheme="teal" rounded="full" px={2}>
-          {state?.mode ?? "—"}
-        </Badge>
-      </HStack>
+      <SimpleGrid columns={2} spacing={2}>
+        <Card
+          label="Estado"
+          value={armed === undefined ? "--" : armed ? "ARMED" : "DISARMED"}
+          icon={FaPlane}
+          color={armed ? "red.500" : "green.500"}
+          highlight={armed === undefined ? "none" : armed ? "red" : "green"}
+          onClick={onToggleArm}
+        />
+        <Card
+          label="Modo"
+          value={mode}
+          icon={FaPlane}
+          color="teal.500"
+          highlight={mode === "GUIDED" ? "teal" : "none"}
+          onClick={onSetGuided}
+        />
+      </SimpleGrid>
+
+      <AttitudeIndicator
+        roll={attitude?.roll_deg}
+        pitch={attitude?.pitch_deg}
+        yaw={attitude?.yaw_deg}
+        size={160}
+      />
 
       <SimpleGrid columns={3} spacing={2}>
         <Card
@@ -198,23 +253,6 @@ export function TelemetryPanel({
           rounded="lg"
         >
           {cameraOn ? "Apagar cámara" : "Encender cámara"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          borderColor="gray.200"
-          onClick={onSetGuided}
-          rounded="lg"
-        >
-          Set GUIDED
-        </Button>
-        <Button
-          size="sm"
-          colorScheme={state?.armed ? "red" : "green"}
-          onClick={onToggleArm}
-          rounded="lg"
-        >
-          {state?.armed ? "Disarm" : "Armar"}
         </Button>
         <Button
           size="sm"

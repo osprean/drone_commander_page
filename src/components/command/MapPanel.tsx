@@ -96,17 +96,23 @@ export const MapPanel = forwardRef<MapPanelHandle, Props>(function MapPanel(
     }
     if (!droneMarkerRef.current) {
       const icon = L.divIcon({
-        html: `<div style="width:20px;height:20px;background:#5AAFBA;border:2px solid #ffffff;border-radius:50%;box-shadow:0 0 6px #5AAFBA"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
+        html: `<div class="drone-arrow" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;transform:rotate(${droneYaw}deg);transform-origin:center;transition:transform 150ms linear">
+          <svg width="32" height="32" viewBox="0 0 32 32" style="filter: drop-shadow(0 0 4px #5AAFBA)">
+            <polygon points="16,3 26,27 16,22 6,27" fill="#5AAFBA" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
         className: "",
       });
       droneMarkerRef.current = L.marker([dronePos.lat, dronePos.lon], { icon }).addTo(map);
     } else {
       droneMarkerRef.current.setLatLng([dronePos.lat, dronePos.lon]);
     }
-    const el = droneMarkerRef.current.getElement()?.firstElementChild as HTMLElement | null;
-    if (el) el.style.transform = `rotate(${droneYaw}deg)`;
+    const arrowEl = droneMarkerRef.current.getElement()?.querySelector(
+      ".drone-arrow",
+    ) as HTMLElement | null;
+    if (arrowEl) arrowEl.style.transform = `rotate(${droneYaw}deg)`;
   }, [dronePos, droneYaw]);
 
   useEffect(() => {

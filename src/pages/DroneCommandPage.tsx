@@ -144,6 +144,16 @@ export function DroneCommandPage() {
     return off;
   }, [onResponse, startSeq, cmds.startMission, toast]);
 
+  // Auto-load current drone mission once subscribed + online
+  const didAutoLoadMission = useRef(false);
+  useEffect(() => {
+    if (didAutoLoadMission.current) return;
+    if (!subscribed || !online || droneId == null) return;
+    didAutoLoadMission.current = true;
+    missionLoadToEditor.current = false;
+    cmds.getMission.mutate(undefined, { onError: () => {} });
+  }, [subscribed, online, droneId, cmds.getMission]);
+
   // Auto-center on drone first fix
   const didCenter = useRef(false);
   useEffect(() => {
