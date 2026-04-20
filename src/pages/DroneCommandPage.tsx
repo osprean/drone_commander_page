@@ -109,40 +109,93 @@ export function DroneCommandPage() {
             },
           });
         } else if (!r.success) {
-          toast({ status: "error", title: "Arm failed", description: r.message });
+          toast({ status: "error", title: "Armado falló", description: r.message });
+        } else {
+          toast({ status: "success", title: "Armado OK" });
         }
+      } else if (r.action === "disarm") {
+        toast({
+          status: r.success ? "success" : "error",
+          title: r.success ? "Desarmado OK" : "Desarmado falló",
+          description: r.message,
+        });
       } else if (r.action === "start_mission") {
         if (startSeq === "starting") {
           setStartSeq(null);
           if (r.success) {
             setStartBtnLabel("✓ Misión iniciada");
             setTimeout(() => setStartBtnLabel("Iniciar misión"), 3000);
+            toast({ status: "success", title: "Misión iniciada" });
           } else {
             setStartBtnLabel("Iniciar misión");
-            toast({ status: "error", title: "Mission start failed", description: r.message });
+            toast({ status: "error", title: "Arranque de misión falló", description: r.message });
           }
+        } else {
+          toast({
+            status: r.success ? "success" : "error",
+            title: r.success ? "Misión iniciada" : "Arranque falló",
+            description: r.message,
+          });
         }
       } else if (r.action === "set_mode/guided" || r.action === "set_mode") {
-        if (!r.success) {
-          toast({ status: "error", title: "Set GUIDED failed", description: r.message });
-        }
+        toast({
+          status: r.success ? "success" : "error",
+          title: r.success ? "Modo GUIDED OK" : "Set GUIDED falló",
+          description: r.message,
+        });
       } else if (r.action === "mission/get") {
         const data = (r.data ?? {}) as { mission_items?: MissionItem[]; speed_ms?: number };
         const items = data.mission_items ?? [];
-        if (missionLoadToEditor.current) {
+        if (!r.success) {
+          toast({ status: "error", title: "Leer misión falló", description: r.message });
+          missionLoadToEditor.current = false;
+        } else if (missionLoadToEditor.current) {
           missionLoadToEditor.current = false;
           applyMissionToEditor(items, data.speed_ms ?? 5);
+          toast({ status: "success", title: `Misión cargada (${items.length} items)` });
         } else {
           setDroneMission(items);
         }
+      } else if (r.action === "mission") {
+        toast({
+          status: r.success ? "success" : "error",
+          title: r.success ? "Misión subida" : "Subida falló",
+          description: r.message,
+        });
       } else if (r.action === "camera/on" || r.action === "camera/off") {
         if (!r.success) {
-          toast({ status: "error", title: "Camera cmd failed", description: r.message });
+          toast({ status: "error", title: "Cámara falló", description: r.message });
         }
+      } else if (!r.success) {
+        toast({ status: "error", title: `${r.action} falló`, description: r.message });
       }
     });
     return off;
   }, [onResponse, startSeq, cmds.startMission, toast]);
+
+  // Connection state toast
+  const prevConn = useRef<{ connected: boolean; subscribed: boolean; online: boolean }>({
+    connected: false,
+    subscribed: false,
+    online: false,
+  });
+  useEffect(() => {
+    const prev = prevConn.current;
+    if (!connected && prev.connected) {
+      toast({ status: "warning", title: "WebSocket desconectado" });
+    } else if (connected && !prev.connected) {
+      toast({ status: "success", title: "WebSocket conectado" });
+    }
+    if (subscribed && !prev.subscribed) {
+      toast({ status: "info", title: `Suscrito al dron${online ? "" : " (offline)"}` });
+    }
+    if (prev.online && !online && prev.subscribed) {
+      toast({ status: "warning", title: "Dron offline" });
+    } else if (!prev.online && online && subscribed) {
+      toast({ status: "success", title: "Dron online" });
+    }
+    prevConn.current = { connected, subscribed, online };
+  }, [connected, subscribed, online, toast]);
 
   // Auto-load current drone mission once subscribed + online
   const didAutoLoadMission = useRef(false);
@@ -323,9 +376,8 @@ export function DroneCommandPage() {
       return toast({ status: "warning", title: "Set landing position first" });
     }
     cmds.uploadMission.mutate(body, {
-      onSuccess: () => toast({ status: "success", title: "Mission uploaded" }),
-      onError: (e: any) =>
-        toast({ status: "error", title: "Upload failed", description: e?.message }),
+      onSuccess: () => toast({ status: "success", title: "Misión subida" }),
+      onError: httpErr("Subida de misión falló"),
     });
   }
 
@@ -340,26 +392,43 @@ export function DroneCommandPage() {
     sendMission(buildBody());
   }
 
+  const httpErr = useCallback(
+    (title: string) => (e: any) => {
+      const msg =
+        e?.response?.data?.error ??
+        e?.response?.data?.message ??
+        e?.message ??
+        "error";
+      toast({ status: "error", title, description: msg });
+    },
+    [toast],
+  );
+
   function loadFromDrone() {
     missionLoadToEditor.current = true;
-    cmds.getMission.mutate();
+    cmds.getMission.mutate(undefined, {
+      onError: (e) => {
+        missionLoadToEditor.current = false;
+        httpErr("Leer misión falló")(e);
+      },
+    });
   }
   function refreshDroneMission() {
     missionLoadToEditor.current = false;
-    cmds.getMission.mutate();
+    cmds.getMission.mutate(undefined, { onError: httpErr("Refrescar misión falló") });
   }
 
   function toggleArm() {
     if (telemetry.state?.armed) {
-      if (!confirm("Force-disarm the drone?")) return;
-      cmds.disarm.mutate();
+      if (!confirm("¿Forzar desarmado?")) return;
+      cmds.disarm.mutate(undefined, { onError: httpErr("Desarmado falló") });
     } else {
-      if (!confirm("Arm the drone in GUIDED mode?")) return;
-      cmds.arm.mutate();
+      if (!confirm("¿Armar dron en modo GUIDED?")) return;
+      cmds.arm.mutate(undefined, { onError: httpErr("Armado falló") });
     }
   }
   function setGuided() {
-    cmds.setGuided.mutate();
+    cmds.setGuided.mutate(undefined, { onError: httpErr("Set GUIDED falló") });
   }
   function startMission() {
     if (!confirm("This will ARM the drone and start the mission loaded on the FCU. Are you sure?"))
