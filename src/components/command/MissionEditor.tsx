@@ -38,7 +38,7 @@ const inputStyle = {
 
 export function MissionEditor(p: Props) {
   return (
-    <Stack spacing={3} p={3} h="100%" overflowY="auto">
+    <Stack spacing={3} p={3}>
       <HStack>
         <Input
           size="sm"
