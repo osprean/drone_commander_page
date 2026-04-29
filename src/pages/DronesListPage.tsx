@@ -12,10 +12,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { useMyDrones } from "../hooks/use-drones";
+import { DUMMY_PARAM } from "../hooks/use-dummy-drone";
 
 export function DronesListPage() {
   const { data, isLoading, error } = useMyDrones();
   const navigate = useNavigate();
+  const showDummy = !isLoading && !!data && data.length === 0;
 
   return (
     <AppShell title="Flota de vigilancia">
@@ -28,14 +30,42 @@ export function DronesListPage() {
         {error && (
           <Text color="red.500">Error cargando drones: {(error as Error).message}</Text>
         )}
-        {!isLoading && data && data.length === 0 && (
-          <Center h="40vh">
-            <Stack align="center" spacing={2}>
-              <Text color="gray.500">No hay drones de vigilancia asignados.</Text>
-            </Stack>
-          </Center>
+        {showDummy && (
+          <Stack align="center" spacing={2} mb={6}>
+            <Text color="gray.500">
+              No hay drones de vigilancia asignados. Prueba con el dron demo:
+            </Text>
+          </Stack>
         )}
         <Grid templateColumns="repeat(auto-fill, minmax(260px, 1fr))" gap={4}>
+          {showDummy && (
+            <Box
+              role="button"
+              onClick={() => navigate(`/drones/${DUMMY_PARAM}`)}
+              bg="white"
+              border="1px dashed"
+              borderColor="purple.400"
+              rounded="xl"
+              p={4}
+              cursor="pointer"
+              shadow="sm"
+              _hover={{ borderColor: "purple.500", transform: "translateY(-1px)", shadow: "md" }}
+              transition="all 0.15s"
+            >
+              <HStack justify="space-between" mb={2}>
+                <Heading size="sm" color="gray.800">
+                  Dron Demo
+                </Heading>
+                <Badge colorScheme="purple" variant="solid" rounded="full" px={2}>
+                  DEMO
+                </Badge>
+              </HStack>
+              <Stack spacing={1} fontSize="xs" color="gray.500">
+                <Text>Simulación local · sin cámara</Text>
+                <Text>Misiones, armado y vuelo en mapa 2D</Text>
+              </Stack>
+            </Box>
+          )}
           {data?.map((d) => {
             const online = !!d.is_online;
             return (

@@ -17,37 +17,52 @@ import { TelemetryPanel } from "../components/command/TelemetryPanel";
 import { useDroneConnection } from "../hooks/use-drones";
 import { useDroneCommands } from "../hooks/use-drone-commands";
 import { useDroneSocket } from "../hooks/use-drone-socket";
+import { isDummyParam, useDummyDrone } from "../hooks/use-dummy-drone";
 import type { CommandResponse, MissionBody, MissionItem } from "../api/types";
 
 type StartSeq = null | "arming" | "starting";
+type DroneKey = number | "dummy";
 
-function loadSaved(droneId: number): SavedMission[] {
+function loadSaved(key: DroneKey): SavedMission[] {
   try {
-    const raw = localStorage.getItem(`gcs_missions_${droneId}`);
+    const raw = localStorage.getItem(`gcs_missions_${key}`);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-function persistSaved(droneId: number, missions: SavedMission[]) {
+function persistSaved(key: DroneKey, missions: SavedMission[]) {
   try {
-    localStorage.setItem(`gcs_missions_${droneId}`, JSON.stringify(missions));
+    localStorage.setItem(`gcs_missions_${key}`, JSON.stringify(missions));
   } catch {}
 }
 
 export function DroneCommandPage() {
   const { id: idParam } = useParams();
-  const droneId = idParam ? parseInt(idParam, 10) : undefined;
+  const isDummy = isDummyParam(idParam);
+  const realDroneId =
+    !isDummy && idParam ? parseInt(idParam, 10) : undefined;
+  const droneKey: DroneKey | undefined = isDummy
+    ? "dummy"
+    : realDroneId;
   const navigate = useNavigate();
   const toast = useToast();
 
-  const { data: conn } = useDroneConnection(droneId);
-  const { telemetry, connected, subscribed, online, onResponse } = useDroneSocket(
-    droneId,
-    conn?.mqtt_namespace,
-  );
-  const cmds = useDroneCommands(droneId);
+  const { data: realConn } = useDroneConnection(realDroneId);
+  const realSocket = useDroneSocket(realDroneId, realConn?.mqtt_namespace);
+  const realCmds = useDroneCommands(realDroneId);
+  const dummy = useDummyDrone({ enabled: isDummy });
+
+  const conn = isDummy ? dummy.conn : realConn;
+  const telemetry = isDummy ? dummy.telemetry : realSocket.telemetry;
+  const connected = isDummy ? dummy.connected : realSocket.connected;
+  const subscribed = isDummy ? dummy.subscribed : realSocket.subscribed;
+  const online = isDummy ? dummy.online : realSocket.online;
+  const onResponse = isDummy ? dummy.onResponse : realSocket.onResponse;
+  const cmds = (isDummy ? dummy.cmds : realCmds) as ReturnType<
+    typeof useDroneCommands
+  >;
 
   const [tabIdx, setTabIdx] = useState(0);
 
@@ -87,8 +102,8 @@ export function DroneCommandPage() {
   const missionLoadToEditor = useRef(false);
 
   useEffect(() => {
-    if (droneId != null) setSavedMissions(loadSaved(droneId));
-  }, [droneId]);
+    if (droneKey != null) setSavedMissions(loadSaved(droneKey));
+  }, [droneKey]);
 
   // React to drone command responses (socket drone:response)
   useEffect(() => {
@@ -215,11 +230,11 @@ export function DroneCommandPage() {
   const didAutoLoadMission = useRef(false);
   useEffect(() => {
     if (didAutoLoadMission.current) return;
-    if (!subscribed || !online || droneId == null) return;
+    if (!subscribed || !online || droneKey == null) return;
     didAutoLoadMission.current = true;
     missionLoadToEditor.current = false;
     cmds.getMission.mutate(undefined, { onError: () => {} });
-  }, [subscribed, online, droneId, cmds.getMission]);
+  }, [subscribed, online, droneKey, cmds.getMission]);
 
   // Auto-center on drone first fix
   const didCenter = useRef(false);
@@ -329,7 +344,7 @@ export function DroneCommandPage() {
     };
     const list = [...savedMissions, next];
     setSavedMissions(list);
-    persistSaved(droneId!, list);
+    persistSaved(droneKey!, list);
     toast({ status: "success", title: "Mission saved" });
   }
 
@@ -344,7 +359,7 @@ export function DroneCommandPage() {
         : m,
     );
     setSavedMissions(list);
-    persistSaved(droneId!, list);
+    persistSaved(droneKey!, list);
     toast({ status: "success", title: "Mission updated" });
   }
 
@@ -364,7 +379,7 @@ export function DroneCommandPage() {
     };
     const list = [...savedMissions, next];
     setSavedMissions(list);
-    persistSaved(droneId!, list);
+    persistSaved(droneKey!, list);
     setEditingIdx(null);
     setMissionName(trimmed);
   }
@@ -383,7 +398,7 @@ export function DroneCommandPage() {
   function deleteSaved(idx: number) {
     const list = savedMissions.filter((_, i) => i !== idx);
     setSavedMissions(list);
-    persistSaved(droneId!, list);
+    persistSaved(droneKey!, list);
   }
 
   function sendMission(body: MissionBody) {
@@ -479,7 +494,7 @@ export function DroneCommandPage() {
 
   const [cameraBusy, setCameraBusy] = useState(false);
   async function toggleCamera() {
-    if (!droneId) return;
+    if (!droneKey) return;
     setCameraBusy(true);
     try {
       if (cameraOn) {
@@ -516,7 +531,7 @@ export function DroneCommandPage() {
   const didRestoreStream = useRef(false);
   useEffect(() => {
     if (didRestoreStream.current) return;
-    if (droneId == null) return;
+    if (droneKey == null) return;
     didRestoreStream.current = true;
     cmds.stream.mutate(undefined, {
       onSuccess: (info) => {
@@ -529,10 +544,10 @@ export function DroneCommandPage() {
       onError: () => {},
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droneId]);
+  }, [droneKey]);
 
   async function toggleDetection() {
-    if (!droneId) return;
+    if (!droneKey) return;
     setDetectionBusy(true);
     try {
       if (detectionOn) {
@@ -566,7 +581,7 @@ export function DroneCommandPage() {
   // Poll detection status once on mount
   const didCheckDetection = useRef(false);
   useEffect(() => {
-    if (didCheckDetection.current || droneId == null) return;
+    if (didCheckDetection.current || droneKey == null) return;
     didCheckDetection.current = true;
     cmds.detectionStatus.mutate(undefined, {
       onSuccess: (r: any) => {
@@ -576,7 +591,7 @@ export function DroneCommandPage() {
       onError: () => {},
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droneId]);
+  }, [droneKey]);
 
   function setLandFromDrone() {
     if (dronePos == null) return toast({ status: "warning", title: "No drone position" });
@@ -593,7 +608,7 @@ export function DroneCommandPage() {
 
   return (
     <AppShell
-      title={conn?.name ?? `Drone ${droneId}`}
+      title={conn?.name ?? `Drone ${droneKey}`}
       actions={
         <HStack spacing={3}>
           <Button size="sm" variant="ghost" onClick={() => navigate("/")}>
