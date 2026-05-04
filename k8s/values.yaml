@@ -4,16 +4,11 @@
 
 componentName: comacon-drone-commander
 tier: frontend
-
-
 image:
   repository: comacon.azurecr.io/comacon-drone-commander
-  tag: sha-INITIAL
+  tag: sha-120255a
   pullPolicy: IfNotPresent
-
 replicaCount: 2
-
-
 resources:
   requests:
     cpu: 50m
@@ -21,15 +16,9 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
-
-
 configuration: {}
-
-
 security:
   secretConfigurations: []
-
-
 # drones.k8s.staging.osprean.net → cluster (paralelo a drones.staging VM).
 routes:
   - host: drones.k8s.staging.osprean.net
@@ -41,15 +30,11 @@ routes:
         port: 8080
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-
-
 service:
   enabled: true
   type: ClusterIP
   port: 80
   targetPort: 8080
-
-
 probes:
   liveness:
     enabled: true
@@ -63,8 +48,6 @@ probes:
     port: 8080
     initialDelaySeconds: 2
     periodSeconds: 5
-
-
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 101
@@ -72,18 +55,13 @@ podSecurityContext:
   fsGroup: 101
   seccompProfile:
     type: RuntimeDefault
-
 containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
   capabilities:
     drop: [ALL]
-
-
 serviceAccount:
   create: true
   automountServiceAccountToken: false
-
-
 workloadIdentity:
   enabled: false
