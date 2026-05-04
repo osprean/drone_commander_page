@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Dockerfile.k8s — drone_commander_page (lift Phase 2.X a k8s)
+# =============================================================================
+# Mismo patrón que comacon-fe + admin-panel (lift Phase 2.X).
+#
+# Build args:
+#   - VITE_API_BASE_URL: drone_commander_page lo lee en src/api/client.ts
+#     (`import.meta.env.VITE_API_BASE_URL`).
+# =============================================================================
+
+
+# ─── Stage 1: builder ────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install --legacy-peer-deps --no-audit
+
+COPY . .
+
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# `npx vite build` — skip tsc-b por errores TS pre-existentes (Phase 4).
+RUN npx vite build
+
+
+# ─── Stage 2: runtime ────────────────────────────────────────────────
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+
+ARG BUILD_DATE="unknown"
+ARG BUILD_SHA="unknown"
+ARG APP_VERSION="0.0.0"
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 8080
+
+LABEL org.opencontainers.image.title="comacon-drone-commander" \
+      org.opencontainers.image.description="Drone commander UI (React + Vite, drone operator dashboard)." \
+      org.opencontainers.image.source="https://github.com/osprean/drone_commander_page" \
+      org.opencontainers.image.licenses="Proprietary" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${BUILD_SHA}" \
+      org.opencontainers.image.created="${BUILD_DATE}"

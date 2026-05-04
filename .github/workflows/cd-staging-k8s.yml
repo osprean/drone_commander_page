@@ -1,0 +1,124 @@
+name: CD — Staging (k8s lift)
+
+# Push a migration/k8s-lift = build arm64 + push ACR + bump k8s/values.yaml.
+# Convive con deploy.yml legacy.
+#
+# Pre-requisitos:
+#   - Environment `staging` + 3 vars Azure en GitHub Settings.
+#   - FC explícito en App Reg `comacon-cd-staging` (nombre `drone_commander_page`
+#     no matchea `comacon-*` glob). Pendiente terraform apply en comacon-infra.
+
+on:
+  push:
+    branches: [migration/k8s-lift]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'tsconfig.node.json'
+      - 'vite.config.ts'
+      - 'Dockerfile.k8s'
+      - 'nginx.conf'
+      - '.github/workflows/cd-staging-k8s.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: comacon.azurecr.io
+  IMAGE_NAME: comacon-drone-commander
+
+concurrency:
+  group: cd-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build arm64, push ACR, bump tag in repo
+    runs-on: ubuntu-24.04-arm
+    environment: staging
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="sha-${SHORT_SHA}"
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          VERSION=$(node -e "console.log(require('./package.json').version || '0.0.0')")
+          {
+            echo "tag=${TAG}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "build_date=${BUILD_DATE}"
+            echo "version=${VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CD_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name "${REGISTRY%%.*}"
+
+      - name: Build and push image (arm64-only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.k8s
+          push: true
+          platforms: linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=${{ steps.meta.outputs.build_date }}
+            BUILD_SHA=${{ steps.meta.outputs.short_sha }}
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            VITE_API_BASE_URL=https://api.k8s.staging.osprean.net/
+          provenance: true
+          sbom: true
+
+      - name: Setup yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_arm64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Bump image tag in k8s/values.yaml
+        run: |
+          yq -i '.image.tag = "${{ steps.meta.outputs.tag }}"' k8s/values.yaml
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet k8s/values.yaml; then
+            echo "Sin cambio de tag — skip commit."
+            exit 0
+          fi
+          git add k8s/values.yaml
+          git commit -m "chore(cd): bump image tag to ${{ steps.meta.outputs.tag }} [skip ci]"
+          git push
+
+      - name: Summary
+        run: |
+          echo "## Deployed to staging (k8s)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image**: \`${REGISTRY}/${IMAGE_NAME}:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **VITE_API_BASE_URL**: \`https://api.k8s.staging.osprean.net/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "ArgoCD desplegará a https://drones.k8s.staging.osprean.net en ~3 min." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,60 @@
+name: Release — Promote to production (k8s)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a promocionar (ej. v1.2.3)."
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGISTRY: comacon.azurecr.io
+  IMAGE_NAME: comacon-drone-commander
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04-arm
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Compute promotion metadata
+        id: meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          {
+            echo "tag=${TAG}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "src_tag=sha-${SHORT_SHA}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CD_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify source image exists
+        run: |
+          if ! az acr manifest show --registry "${REGISTRY%%.*}" --name "${IMAGE_NAME}:${{ steps.meta.outputs.src_tag }}" &>/dev/null; then
+            echo "::error::Source ${REGISTRY}/${IMAGE_NAME}:${{ steps.meta.outputs.src_tag }} no existe."
+            exit 1
+          fi
+
+      - name: Add SemVer tag in ACR (no rebuild)
+        run: |
+          az acr import \
+            --name "${REGISTRY%%.*}" \
+            --source "${REGISTRY}/${IMAGE_NAME}:${{ steps.meta.outputs.src_tag }}" \
+            --image  "${IMAGE_NAME}:${{ steps.meta.outputs.tag }}" \
+            --force
