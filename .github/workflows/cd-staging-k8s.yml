@@ -1,7 +1,11 @@
 name: CD — Staging (k8s lift)
 
-# Push a migration/k8s-lift = build arm64 + push ACR + bump k8s/values.yaml.
+# Push a migration/k8s-lift = build amd64 + push ACR + bump k8s/values.yaml.
 # Convive con deploy.yml legacy.
+#
+# Cluster K8s staging migrado de ARM (cax21) → x86 (cx33) en 2026-05-08
+# (ver runbook phase-x-hetzner-account-migration.md). Build platform es
+# amd64-only.
 #
 # Pre-requisitos:
 #   - Environment `staging` + 3 vars Azure en GitHub Settings.
@@ -39,8 +43,8 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Build arm64, push ACR, bump tag in repo
-    runs-on: ubuntu-24.04-arm
+    name: Build amd64, push ACR, bump tag in repo
+    runs-on: ubuntu-24.04
     environment: staging
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
@@ -77,13 +81,13 @@ jobs:
       - name: Login to ACR
         run: az acr login --name "${REGISTRY%%.*}"
 
-      - name: Build and push image (arm64-only)
+      - name: Build and push image (amd64-only)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.k8s
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
@@ -97,7 +101,7 @@ jobs:
 
       - name: Setup yq
         run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_arm64
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
       - name: Bump image tag in k8s/values.yaml
