@@ -16,7 +16,10 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
-configuration: {}
+# Path B (runtime config injection, post-2026-05-09 incident — ver
+# comacon-infra/docs/runbooks/phase-f-prod-gitops-incidents.md):
+configuration:
+  API_URL: https://api.k8s.staging.osprean.net/
 security:
   secretConfigurations: []
 # drones.k8s.staging.osprean.net → cluster (paralelo a drones.staging VM).
@@ -57,7 +60,10 @@ podSecurityContext:
     type: RuntimeDefault
 containerSecurityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
+  # readOnlyRootFilesystem DISABLED — entrypoint runtime-config (Path B)
+  # necesita `sed -i` sobre /usr/share/nginx/html. TODO: refactorizar a
+  # initContainer + emptyDir para volver a true.
+  readOnlyRootFilesystem: false
   capabilities:
     drop: [ALL]
 serviceAccount:

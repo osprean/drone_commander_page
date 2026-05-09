@@ -6,7 +6,11 @@
 
 # === Image (pin a SemVer promovido desde staging) =========================
 image:
-  tag: v1.0.0
+  tag: v1.1.0
+
+# === Configuration (Path B runtime config — override staging URL) =========
+configuration:
+  API_URL: https://api.k8s.prod.osprean.net/
 
 routes:
   - host: drones.k8s.prod.osprean.net

@@ -95,7 +95,9 @@ jobs:
             BUILD_DATE=${{ steps.meta.outputs.build_date }}
             BUILD_SHA=${{ steps.meta.outputs.short_sha }}
             APP_VERSION=${{ steps.meta.outputs.version }}
-            VITE_API_BASE_URL=https://api.k8s.staging.osprean.net/
+            # Path B (runtime config): bake placeholder, replaced at startup
+            # with $API_URL env var. Same image runs in staging + prod.
+            VITE_API_BASE_URL=__COMACON_RUNTIME_API_URL__
           provenance: true
           sbom: true
 
@@ -124,5 +126,5 @@ jobs:
         run: |
           echo "## Deployed to staging (k8s)" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Image**: \`${REGISTRY}/${IMAGE_NAME}:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **VITE_API_BASE_URL**: \`https://api.k8s.staging.osprean.net/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API URL**: runtime-injected via container env (Path B)" >> "$GITHUB_STEP_SUMMARY"
           echo "ArgoCD desplegará a https://drones.k8s.staging.osprean.net en ~3 min." >> "$GITHUB_STEP_SUMMARY"

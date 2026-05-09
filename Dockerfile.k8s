@@ -35,7 +35,15 @@ ARG BUILD_SHA="unknown"
 ARG APP_VERSION="0.0.0"
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+# --chown=101:101 → uid `nginx` para que el entrypoint runtime-config
+# (sed -i) pueda escribir sin root.
+COPY --from=builder --chown=101:101 /app/dist /usr/share/nginx/html
+
+# Runtime config injection (Path B — incidente 2026-05-09):
+# Reemplaza placeholder __COMACON_RUNTIME_API_URL__ en el bundle por
+# $API_URL al startup. Una imagen sirve staging+prod difiriendo solo en
+# env vars.
+COPY --chmod=755 docker-entrypoint-runtime-config.sh /docker-entrypoint.d/40-comacon-runtime-config.sh
 
 EXPOSE 8080
 
