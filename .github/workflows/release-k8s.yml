@@ -26,15 +26,28 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
-      - name: Compute promotion metadata
+      - name: Setup yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_arm64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Compute promotion metadata (Fix F — read source tag from values.yaml)
+        # NO derivamos src_tag del SHA del commit tageado. La CD bot crea
+        # commits "bump" SIN imagen; tageando HEAD tras una build cae en
+        # el bump y el promote falla (incidente #2). Leemos image.tag de
+        # values.yaml — es la verdad sobre qué imagen está en staging.
         id: meta
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          SHORT_SHA="${GITHUB_SHA::7}"
+          SRC_TAG=$(yq '.image.tag' k8s/values.yaml)
+          if [ -z "${SRC_TAG}" ] || [ "${SRC_TAG}" = "null" ]; then
+            echo "::error::image.tag missing from k8s/values.yaml — can't promote"
+            exit 1
+          fi
+          echo "Source image tag (from values.yaml): ${SRC_TAG}"
           {
             echo "tag=${TAG}"
-            echo "short_sha=${SHORT_SHA}"
-            echo "src_tag=sha-${SHORT_SHA}"
+            echo "src_tag=${SRC_TAG}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Login to Azure (OIDC)
