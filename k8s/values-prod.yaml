@@ -1,0 +1,16 @@
+# =============================================================================
+# k8s/values-prod.yaml — overlay PROD para comacon-drone-commander.
+# =============================================================================
+# Override mínimo: solo el host del Ingress.
+# =============================================================================
+
+routes:
+  - host: drones.k8s.prod.osprean.net
+    ingressClass: nginx-public
+    tls: true
+    paths:
+      - path: /
+        pathType: Prefix
+        port: 8080
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
