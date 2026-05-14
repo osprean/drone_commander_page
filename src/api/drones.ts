@@ -93,3 +93,41 @@ export async function cmdDetectionStatus(id: number) {
   const { data } = await api.get(`/api/drones/${id}/detection/status`);
   return data;
 }
+
+// === Drone simulator (k8s-spawned) ==========================================
+// API for slots where `is_simulated=true`. Backend spawns/stops a k8s Job that
+// runs SITL + drone container + cesium-camera. Real drones don't expose these
+// endpoints (return 400 if called on a non-sim drone).
+
+export type SimPodStatus =
+  | "pending"
+  | "running"
+  | "stopping"
+  | "stopped"
+  | "failed";
+
+export interface SimDroneState {
+  is_simulated: boolean;
+  sim_pod_name: string | null;
+  sim_pod_status: SimPodStatus | null;
+  sim_home_lat: number | null;
+  sim_home_lon: number | null;
+  sim_home_alt: number | null;
+  sim_home_hdg: number | null;
+  sim_last_activity: string | null;
+}
+
+export async function simSpawn(id: number): Promise<SimDroneState> {
+  const { data } = await api.post(`/api/drones/${id}/sim/spawn`);
+  return data as SimDroneState;
+}
+
+export async function simStop(id: number): Promise<SimDroneState> {
+  const { data } = await api.delete(`/api/drones/${id}/sim/stop`);
+  return data as SimDroneState;
+}
+
+export async function simStatus(id: number): Promise<SimDroneState> {
+  const { data } = await api.get(`/api/drones/${id}/sim/status`);
+  return data as SimDroneState;
+}

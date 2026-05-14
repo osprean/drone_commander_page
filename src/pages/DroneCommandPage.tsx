@@ -13,6 +13,7 @@ import { AppShell } from "../components/AppShell";
 import { MapPanel, type MapPanelHandle } from "../components/command/MapPanel";
 import { MissionEditor, type EditWP } from "../components/command/MissionEditor";
 import { SavedMissionsModal, type SavedMission } from "../components/command/SavedMissionsModal";
+import { SimulatorPanel } from "../components/command/SimulatorPanel";
 import { TelemetryPanel } from "../components/command/TelemetryPanel";
 import { useDroneConnection } from "../hooks/use-drones";
 import { useDroneCommands } from "../hooks/use-drone-commands";
@@ -628,6 +629,9 @@ export function DroneCommandPage() {
           <Text fontSize="xs" color="gray.500" fontFamily="mono">
             {conn?.mqtt_namespace ?? ""}
           </Text>
+          {realDroneId !== undefined && (
+            <SimulatorPanel droneId={realDroneId} />
+          )}
         </HStack>
       }
     >
