@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { io, Socket } from "socket.io-client";
+import { apiBaseUrl } from "../api/client";
 import { fetchTelemetrySeed } from "../api/drones";
 import type {
   AttitudePayload,
@@ -73,9 +74,12 @@ export function useDroneSocket(
   useEffect(() => {
     if (!droneId || !mqttNamespace) return;
 
-    const WS_URL = import.meta.env.DEV
-      ? window.location.origin
-      : (import.meta.env.VITE_WS_URL as string) || window.location.origin;
+    // SocketIO talks to the BACKEND host, not the FE host. Reuse the same
+    // runtime-injected API base URL that REST calls use (apiBaseUrl helper —
+    // resolves to VITE_API_BASE_URL substituted at container startup by the
+    // entrypoint). Falling back to window.location.origin would point at the
+    // FE host (drones.k8s.staging.osprean.net) where no SocketIO server lives.
+    const WS_URL = apiBaseUrl();
 
     const token = getJwt();
     const s = io(WS_URL, {
