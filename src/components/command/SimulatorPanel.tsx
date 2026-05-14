@@ -84,8 +84,11 @@ export function SimulatorPanel({ droneId }: Props) {
   if (!data.is_simulated) return null;
 
   const status: SimPodStatus = data.sim_pod_status ?? "stopped";
-  const isTransient = status === "pending" || status === "stopping";
-  const isRunning = status === "running";
+  // Show Stop for ANY non-terminal state (running, pending, stopping) so the
+  // user can recover from a stuck pending (e.g. ImagePullBackOff loop). Spawn
+  // is only available when the slot is truly idle (stopped/failed/null).
+  const canStop = status === "running" || status === "pending" || status === "stopping";
+  const canSpawn = !canStop;
 
   return (
     <HStack
@@ -99,24 +102,26 @@ export function SimulatorPanel({ droneId }: Props) {
     >
       <Badge colorScheme="purple">SIM</Badge>
       <Badge colorScheme={BADGE_COLOR[status]}>{BADGE_LABEL[status]}</Badge>
-      {isRunning ? (
+      {canStop && (
         <Button
           size="xs"
           colorScheme="red"
+          variant={status === "running" ? "solid" : "outline"}
           onClick={() => stop.mutate()}
           isLoading={stop.isPending}
+          isDisabled={status === "stopping"}
         >
-          Stop pod
+          {status === "pending" ? "Cancelar" : "Stop pod"}
         </Button>
-      ) : (
+      )}
+      {canSpawn && (
         <Button
           size="xs"
           colorScheme="green"
           onClick={() => spawn.mutate()}
           isLoading={spawn.isPending}
-          isDisabled={isTransient}
         >
-          Spawn pod
+          {status === "failed" ? "Reintentar" : "Spawn pod"}
         </Button>
       )}
       {data.sim_pod_name && (
