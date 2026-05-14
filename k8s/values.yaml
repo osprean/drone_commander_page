@@ -6,7 +6,7 @@ componentName: comacon-drone-commander
 tier: frontend
 image:
   repository: comacon.azurecr.io/comacon-drone-commander
-  tag: sha-7a3d607
+  tag: sha-c972835
   pullPolicy: IfNotPresent
 replicaCount: 2
 resources:
