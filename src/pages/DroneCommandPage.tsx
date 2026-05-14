@@ -98,6 +98,15 @@ export function DroneCommandPage() {
   // Start mission sequence
   const [startSeq, setStartSeq] = useState<StartSeq>(null);
   const [startBtnLabel, setStartBtnLabel] = useState("Iniciar misión");
+  // Mirror startSeq into a ref so the onResponse listener can read its CURRENT
+  // value (the listener closure is created once and would otherwise capture a
+  // stale value from when the effect last ran — race condition: if the arm
+  // response arrives before the effect re-runs with startSeq="arming", the
+  // listener sees startSeq=null and skips the transition to start_mission).
+  const startSeqRef = useRef<StartSeq>(null);
+  useEffect(() => {
+    startSeqRef.current = startSeq;
+  }, [startSeq]);
 
   const mapRef = useRef<MapPanelHandle>(null);
   const missionLoadToEditor = useRef(false);
@@ -110,7 +119,7 @@ export function DroneCommandPage() {
   useEffect(() => {
     const off = onResponse((r: CommandResponse) => {
       if (r.action === "arm") {
-        if (startSeq === "arming") {
+        if (startSeqRef.current === "arming") {
           if (!r.success) {
             setStartSeq(null);
             setStartBtnLabel("Iniciar misión");
@@ -138,7 +147,7 @@ export function DroneCommandPage() {
           description: r.message,
         });
       } else if (r.action === "start_mission") {
-        if (startSeq === "starting") {
+        if (startSeqRef.current === "starting") {
           setStartSeq(null);
           if (r.success) {
             setStartBtnLabel("✓ Misión iniciada");
@@ -201,7 +210,9 @@ export function DroneCommandPage() {
       }
     });
     return off;
-  }, [onResponse, startSeq, cmds.startMission, toast]);
+    // startSeq read via ref (startSeqRef) — listener no longer needs to be
+    // re-registered on every startSeq change, so it's not in the deps array.
+  }, [onResponse, cmds.startMission, toast]);
 
   // Connection state toast
   const prevConn = useRef<{ connected: boolean; subscribed: boolean; online: boolean }>({
